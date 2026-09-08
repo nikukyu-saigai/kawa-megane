@@ -26,7 +26,7 @@ body{
 .shell{max-width:560px;margin:0 auto;padding:0 20px}
 
 /* ── 表札 ── */
-.plate{position:relative;padding:40px 0 30px}
+.plate{position:relative;padding:40px 0 42px}
 .plate .paw{position:absolute;right:-30px;top:8px;width:190px;opacity:.13;pointer-events:none}
 .plate .inner{position:relative;border:1.5px solid var(--gold-dim);padding:26px 22px 24px}
 .plate .inner::before,.plate .inner::after{
@@ -48,7 +48,7 @@ h1 .g{color:var(--gold)}
 .staff{position:absolute;pointer-events:none}
 .staff img{display:block;height:100%;width:auto}
 .plate{position:relative}
-.plate .staff{right:4px;bottom:2px;height:74px;z-index:2}
+.plate .staff{right:4px;bottom:-16px;height:70px;z-index:2}
 .panel{position:relative}
 .sign{display:flex;align-items:flex-end;justify-content:center;gap:11px;margin-top:24px}
 .sign img{height:88px;width:auto;flex:none}
@@ -420,6 +420,8 @@ function fmt(v){return v<1?Math.round(v*1000)+'m':v.toFixed(1)+'km';}
 function show(lat,lon,label){
   statusEl.classList.remove('err');
   statusEl.innerHTML=label?('起点：<b>'+label+'</b>'):('現在地 <b>'+lat.toFixed(4)+', '+lon.toFixed(4)+'</b>');
+  natLink.href='https://www.river.go.jp/kawabou/mb/tm?zm=13&clat='+lat+'&clon='+lon+
+    '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0&itmkndCd=200';
   natLink.href='https://www.river.go.jp/kawabou/mb/tm?zm=13&clat='+lat+'&clon='+lon+
     '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0&itmkndCd=200';
   const sorted=CAMS.map(c=>({name:c[0],area:c[1],vid:c[4],q:c[5],km:distKm(lat,lon,c[2],c[3])}))
