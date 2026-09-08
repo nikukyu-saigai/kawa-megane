@@ -173,7 +173,7 @@ footer{padding:26px 20px 0;font-size:11.5px;color:rgba(244,239,227,.4);text-alig
 
   <div class="aux">
     <h3>一覧にない川を見るとき</h3>
-    <p>全国の河川カメラ・水位はこちらから。地図上のカメラアイコンで映像が見られます。</p>
+    <p>全国の河川カメラ・水位はこちらから。開いたあと地図を動かし、カメラ表示に切り替えてください。気象庁キキクルは現在地の自動取得に対応しています。</p>
     <a id="natLink" href="https://www.river.go.jp/" target="_blank" rel="noopener">国交省 川の防災情報（現在地）</a>
     <a class="sub" href="https://www.jma.go.jp/bosai/risk/floodmesh.html" target="_blank" rel="noopener">気象庁 洪水キキクル</a>
     <a class="sub" href="https://www.kasen-suibo.metro.tokyo.lg.jp/" target="_blank" rel="noopener">東京都 水防災総合情報システム</a>
@@ -409,26 +409,24 @@ const CAMS=[
 const btn=document.getElementById('locateBtn'),statusEl=document.getElementById('status'),
  listEl=document.getElementById('list'),manual=document.getElementById('manual'),
  natLink=document.getElementById('natLink');
+let lastLat=null,lastLon=null;
 
+function riverUrl(lat,lon){
+  return 'https://www.river.go.jp/kawabou/mb/tm?zm=13&clat='+lat+'&clon='+lon+
+    '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRiver=1&viewPoint=1&ext=0';
+}
 function distKm(a1,o1,a2,o2){
   const R=6371,dA=(a2-a1)*Math.PI/180,dO=(o2-o1)*Math.PI/180;
   const x=Math.sin(dA/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;
   return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
-let lastLat=null,lastLon=null;
-function riverUrl(lat,lon){
-  return 'https://www.river.go.jp/kawabou/mb/tm?zm=13&clat='+lat+'&clon='+lon+
-    '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0&itmkndCd=200';
-}
 function fmt(v){return v<1?Math.round(v*1000)+'m':v.toFixed(1)+'km';}
 
 function show(lat,lon,label){
+  lastLat=lat;lastLon=lon;
+  if(natLink)natLink.href=riverUrl(lat,lon);
   statusEl.classList.remove('err');
   statusEl.innerHTML=label?('起点：<b>'+label+'</b>'):('現在地 <b>'+lat.toFixed(4)+', '+lon.toFixed(4)+'</b>');
-  lastLat=lat;lastLon=lon;
-  natLink.href=riverUrl(lat,lon);
-  lastLat=lat;lastLon=lon;
-  natLink.href=riverUrl(lat,lon);
   const sorted=CAMS.map(c=>({name:c[0],area:c[1],vid:c[4],q:c[5],km:distKm(lat,lon,c[2],c[3])}))
     .sort((a,b)=>a.km-b.km);
   listEl.innerHTML='<p class="lead">近い順（押すとライブ映像が開きます）</p>';
@@ -448,21 +446,19 @@ document.querySelectorAll('#manual .chips button').forEach(b=>{
   b.addEventListener('click',()=>show(+b.dataset.lat,+b.dataset.lon,b.textContent));
 });
 
-natLink.addEventListener('click',e=>{
-  if(lastLat!==null){natLink.href=riverUrl(lastLat,lastLon);return;}
-  if(!('geolocation' in navigator))return;
-  e.preventDefault();
-  natLink.textContent='現在地を取得中…';
-  navigator.geolocation.getCurrentPosition(pos=>{
-    lastLat=pos.coords.latitude;lastLon=pos.coords.longitude;
-    natLink.textContent='国交省 川の防災情報（現在地の地図）';
-    natLink.href=riverUrl(lastLat,lastLon);
-    window.open(natLink.href,'_blank');
-  },()=>{
-    natLink.textContent='国交省 川の防災情報';
-    window.open('https://www.river.go.jp/','_blank');
-  },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
-});
+if(natLink){
+  natLink.addEventListener('click',e=>{
+    if(lastLat!==null){natLink.href=riverUrl(lastLat,lastLon);return;}
+    if(!('geolocation' in navigator))return;
+    e.preventDefault();
+    navigator.geolocation.getCurrentPosition(pos=>{
+      lastLat=pos.coords.latitude;lastLon=pos.coords.longitude;
+      natLink.href=riverUrl(lastLat,lastLon);
+      window.open(natLink.href,'_blank');
+    },()=>{window.open('https://www.river.go.jp/','_blank');},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+  });
+}
 
 btn.addEventListener('click',()=>{
   if(!('geolocation' in navigator)){
