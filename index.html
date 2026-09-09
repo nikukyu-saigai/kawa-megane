@@ -15,7 +15,8 @@
 <style>
   :root{
     --navy:#16233F; --navy2:#0F1929; --gold:#C9A75A; --cream:#F6F1E5;
-    --danger:#C0392B; --pad: env(safe-area-inset-bottom, 0px);
+    --pad: env(safe-area-inset-bottom, 0px);
+    --footerH: 200px;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%}
@@ -23,7 +24,6 @@
        background:var(--navy2);color:var(--cream);overflow:hidden}
   #map{position:absolute;inset:0}
 
-  /* ---- 上部バー ---- */
   header{position:absolute;top:0;left:0;right:0;z-index:1000;
     background:linear-gradient(180deg,rgba(15,25,41,.94),rgba(15,25,41,.80) 70%,transparent);
     padding:10px 14px 22px}
@@ -33,21 +33,40 @@
   .warn{margin-top:6px;font-size:12px;line-height:1.5;color:#FFD9D4}
   .warn b{color:#FF8A7A}
 
-  /* ---- レイヤー切替 ---- */
+  #rtime{position:absolute;z-index:1000;left:10px;top:92px;font-size:11px;
+    background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.35);
+    padding:6px 9px;border-radius:8px;color:#CBD6E6}
+  #mapsrc{position:absolute;z-index:1000;left:10px;top:126px;font-size:10px;
+    background:rgba(15,25,41,.8);border:1px solid rgba(201,167,90,.22);
+    padding:4px 8px;border-radius:7px;color:#9FB0C8;max-width:calc(100vw - 130px)}
+
+  #legend{position:absolute;z-index:1000;left:10px;top:158px;
+    background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.3);border-radius:8px;
+    padding:5px 9px;font-size:10px;color:#CBD6E6;display:flex;align-items:center;gap:8px;
+    flex-wrap:wrap;max-width:calc(100vw - 130px)}
+  #legend .row{display:flex;align-items:center;gap:4px}
+  #legend i{width:13px;height:8px;border-radius:2px;display:inline-block}
+
   #layers{position:absolute;z-index:1000;right:10px;top:92px;display:flex;flex-direction:column;gap:8px}
   .lyr{appearance:none;border:1.5px solid rgba(201,167,90,.55);background:rgba(15,25,41,.86);
     color:var(--cream);font-size:12px;line-height:1.25;padding:9px 10px;border-radius:10px;
-    width:106px;text-align:center;cursor:pointer;backdrop-filter:blur(4px)}
+    width:106px;text-align:center;cursor:pointer}
   .lyr small{display:block;font-size:10px;color:#9FB0C8;margin-top:3px}
   .lyr.on{background:var(--gold);color:#1B2A4A;border-color:var(--gold);font-weight:700}
   .lyr.on small{color:#4A3D1C}
 
-  /* ---- 現在地 ---- */
-  #locate{position:absolute;z-index:1000;right:10px;bottom:calc(126px + var(--pad));
+  #locate{position:absolute;z-index:1000;right:10px;
+    bottom:calc(var(--footerH) + var(--pad));
     width:52px;height:52px;border-radius:50%;border:1.5px solid rgba(201,167,90,.55);
     background:rgba(15,25,41,.9);color:var(--cream);font-size:22px;cursor:pointer}
 
-  /* ---- 下部アクション ---- */
+  #toast{position:absolute;z-index:1200;left:50%;transform:translateX(-50%);
+    bottom:calc(var(--footerH) + 8px + var(--pad));background:rgba(15,25,41,.96);
+    border:1px solid rgba(201,167,90,.5);color:#F6F1E5;font-size:12px;line-height:1.5;
+    padding:10px 14px;border-radius:10px;max-width:86vw;text-align:center;
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  #toast.show{opacity:1}
+
   footer{position:absolute;left:0;right:0;bottom:0;z-index:1000;
     background:linear-gradient(0deg,rgba(15,25,41,.96),rgba(15,25,41,.86) 60%,transparent);
     padding:18px 10px calc(12px + var(--pad))}
@@ -61,10 +80,7 @@
   .note{max-width:560px;margin:8px auto 0;font-size:10.5px;line-height:1.6;color:#8FA0B8;text-align:center}
   .note a{color:#B9C7DA}
 
-  /* ---- 雨雲の時刻 ---- */
-  #rtime{position:absolute;z-index:1000;left:10px;top:92px;font-size:11px;
-    background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.35);
-    padding:6px 9px;border-radius:8px;color:#CBD6E6}
+  .rain-tiles{mix-blend-mode:multiply}
 
   .me-tip{background:#E2453C;color:#fff;border:none;font-size:11px;font-weight:700;
     padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
@@ -74,15 +90,7 @@
   .leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.6}
   .leaflet-popup-content a{display:inline-block;margin-top:8px;background:#C9A75A;color:#1B2A4A;
     text-decoration:none;font-weight:700;padding:7px 12px;border-radius:8px}
-  /* 雨雲は乗算合成にして、地名・道路・川が透けるようにする */
-  .rain-tiles{mix-blend-mode:multiply}
-  /* 凡例 */
-  #legend{position:absolute;z-index:1000;left:10px;bottom:calc(126px + var(--pad));
-    background:rgba(15,25,41,.88);border:1px solid rgba(201,167,90,.35);border-radius:8px;
-    padding:6px 8px;font-size:9.5px;color:#CBD6E6;line-height:1.35}
-  #legend .row{display:flex;align-items:center;gap:5px;margin-top:2px}
-  #legend i{width:14px;height:8px;border-radius:2px;display:inline-block}
-  .leaflet-bottom.leaflet-left{bottom:calc(238px + var(--pad))}
+  .leaflet-bottom.leaflet-left{bottom:calc(var(--footerH) + var(--pad))}
   .leaflet-control-attribution{font-size:9px !important;background:rgba(255,255,255,.75) !important}
 </style>
 </head>
@@ -91,11 +99,21 @@
 <div id="map"></div>
 
 <header>
-  <div class="ttl"><b>川めがね</b><span>NIKUKYU DISASTER BUREAU</span></div>
+  <div class="ttl"><b>川めがね</b><span>NIKUKYU DISASTER BUREAU</span>
+    <span style="margin-left:auto;color:#7E8CA3">v5</span></div>
   <div class="warn"><b>避難指示（レベル4）以上が出ているときは、地図を見るより先に避難してください。</b></div>
 </header>
 
 <div id="rtime">雨雲を読み込み中…</div>
+<div id="mapsrc">地図を読み込み中…</div>
+
+<div id="legend">
+  <span style="color:#E3C572;font-weight:700">雨</span>
+  <span class="row"><i style="background:#A0D2FF"></i>弱</span>
+  <span class="row"><i style="background:#2B85EF"></i>やや強</span>
+  <span class="row"><i style="background:#FAF43C"></i>強</span>
+  <span class="row"><i style="background:#FF2800"></i>激しい</span>
+</div>
 
 <div id="layers">
   <button class="lyr on" id="btnRain">雨雲<small>いま降っている</small></button>
@@ -103,15 +121,8 @@
   <button class="lyr" id="btnDoseki">土砂<small>警戒区域</small></button>
 </div>
 
-<div id="legend">
-  <div style="color:#E3C572;font-weight:700">雨の強さ</div>
-  <div class="row"><i style="background:#A0D2FF"></i>弱い</div>
-  <div class="row"><i style="background:#2B85EF"></i>やや強い</div>
-  <div class="row"><i style="background:#FAF43C"></i>強い</div>
-  <div class="row"><i style="background:#FF2800"></i>激しい</div>
-</div>
-
 <button id="locate" title="現在地へ">◎</button>
+<div id="toast"></div>
 
 <footer>
   <div class="acts">
@@ -132,123 +143,180 @@
 <script>
 /* ============================================================
    川めがね  —  肉球災害対策事務局
-   地理院タイル + 気象庁ナウキャスト + 重ねるハザードマップ
+   地理院タイル / OpenStreetMap ＋ 気象庁ナウキャスト
+   ＋ 重ねるハザードマップ（洪水浸水想定・土砂災害警戒区域）
    ============================================================ */
 
-const map = L.map('map', {
-  center: [35.7365, 139.5800],   // 初期表示：西武池袋線あたり
-  zoom: 14,
-  zoomControl: false,
-  attributionControl: true
-});
+const map = L.map('map', { center:[35.7365,139.5800], zoom:14, zoomControl:false });
 L.control.zoom({position:'bottomleft'}).addTo(map);
 
-/* ---- ベース地図：地理院 淡色 ---- */
-L.tileLayer('https://cyberjapandata.to.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-  attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>',
-  maxZoom: 18
-}).addTo(map);
+const srcEl   = document.getElementById('mapsrc');
+const timeEl  = document.getElementById('rtime');
+const toastEl = document.getElementById('toast');
 
-/* ---- 洪水浸水想定区域（想定最大規模） ---- */
+function toast(msg, ms){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, ms || 4000);
+}
+
+/* ===== ベース地図：地理院タイル。読めなければ OpenStreetMap ===== */
+let baseSwitched = false, gsiOk = 0, gsiErr = 0;
+
+const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom:19,
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+});
+const gsi = L.tileLayer('https://cyberjapandata.to.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  maxZoom:18,
+  attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+});
+
+function useOSM(reason){
+  if (baseSwitched) return;
+  baseSwitched = true;
+  if (map.hasLayer(gsi)) map.removeLayer(gsi);
+  osm.addTo(map);
+  osm.setZIndex(1);
+  srcEl.textContent = '地図：OpenStreetMap（' + reason + '）';
+}
+gsi.on('tileload',  function(){ gsiOk++; if(!baseSwitched) srcEl.textContent = '地図：地理院タイル'; });
+gsi.on('tileerror', function(){ gsiErr++; if(gsiErr>=4 && gsiOk===0) useOSM('地理院タイルが読めないため'); });
+gsi.addTo(map);
+gsi.setZIndex(1);
+setTimeout(function(){ if(gsiOk===0) useOSM('地理院タイルが読めないため'); }, 6000);
+
+/* ===== ハザードマップ ===== */
 const flood = L.tileLayer(
   'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',
-  { opacity:0.62, maxNativeZoom:17, maxZoom:18,
+  { opacity:0.62, maxNativeZoom:17, maxZoom:18, zIndex:300,
     attribution:'<a href="https://disaportal.gsi.go.jp/" target="_blank">ハザードマップポータル</a>' });
 
-/* ---- 土砂災害警戒区域（土石流） ---- */
 const doseki = L.tileLayer(
   'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
-  { opacity:0.62, maxNativeZoom:17, maxZoom:18 });
+  { opacity:0.62, maxNativeZoom:17, maxZoom:18, zIndex:300 });
 
-/* ---- 雨雲（気象庁ナウキャスト） ----------------------------
-   ※ 気象庁が一般公開しているタイル配信を利用しています。
-      公式APIとして案内されているものではないため、
-      予告なく形式が変わる可能性があります。
------------------------------------------------------------- */
+/* ===== 雨雲（気象庁ナウキャスト） =====
+   気象庁が公開している配信を利用しています。公式APIとして案内
+   されたものではないため、形式が変わる可能性があります。      */
+function fmtJMATime(v){
+  const d = String(v).replace(/[^0-9]/g,'');
+  if (d.length < 12) return '時刻不明';
+  const iso = d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8)+'T'+d.slice(8,10)+':'+d.slice(10,12)+':00Z';
+  let t = new Date(iso);
+  const diffMin = (Date.now() - t.getTime())/60000;
+  if (diffMin < -180) t = new Date(t.getTime() - 9*3600000);
+  const f = new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',
+    month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
+  const ago = Math.max(0, Math.round((Date.now()-t.getTime())/60000));
+  return f.format(t) + (ago<=90 ? '（'+ago+'分前）' : '');
+}
+
 let rain = null;
-async function loadRain(){
-  const el = document.getElementById('rtime');
-  try{
-    const res = await fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',{cache:'no-store'});
-    const list = await res.json();
-    // 実況（basetime === validtime）のうち最新のもの
-    const now = list.filter(o => o.basetime === o.validtime).pop() || list[0];
-    const url = `https://www.jma.go.jp/bosai/jmatile/data/nowc/${now.basetime}/none/${now.validtime}/surf/hrpns/{z}/{x}/{y}.png`;
-    if (rain) map.removeLayer(rain);
-    rain = L.tileLayer(url,{opacity:0.55, maxNativeZoom:10, maxZoom:18, zIndex:400, className:'rain-tiles'});
-    if (document.getElementById('btnRain').classList.contains('on')) rain.addTo(map);
-    const d = String(now.validtime).replace(/[^0-9]/g,''); // 例 20260909091000
-    el.textContent = `雨雲 ${d.slice(4,6)}/${d.slice(6,8)} ${d.slice(8,10)}:${d.slice(10,12)} 時点`;
-  }catch(e){
-    el.textContent = '雨雲を取得できませんでした';
-    document.getElementById('btnRain').classList.remove('on');
-  }
+function loadRain(){
+  fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',{cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      const now = list.filter(function(o){ return o.basetime===o.validtime; }).pop()
+                  || list[list.length-1];
+      const url = 'https://www.jma.go.jp/bosai/jmatile/data/nowc/'+now.basetime+
+                  '/none/'+now.validtime+'/surf/hrpns/{z}/{x}/{y}.png';
+      const wasOn = document.getElementById('btnRain').classList.contains('on');
+      if (rain) map.removeLayer(rain);
+      rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:18,zIndex:400,className:'rain-tiles'});
+      if (wasOn) rain.addTo(map);
+      timeEl.textContent = '雨雲 ' + fmtJMATime(now.validtime);
+    })
+    .catch(function(){ timeEl.textContent = '雨雲を取得できませんでした'; });
 }
 loadRain();
-setInterval(loadRain, 5*60*1000);   // 5分ごとに更新
+setInterval(loadRain, 5*60*1000);
 
-/* ---- レイヤー切替 ---- */
-function toggle(btnId, layer){
-  const b = document.getElementById(btnId);
-  b.addEventListener('click', ()=>{
+/* ===== レイヤー切替 ===== */
+function bindToggle(id, getLayer){
+  const b = document.getElementById(id);
+  b.addEventListener('click', function(){
     const on = b.classList.toggle('on');
-    const L_ = (btnId==='btnRain') ? rain : layer;
-    if(!L_) return;
-    on ? L_.addTo(map) : map.removeLayer(L_);
+    const lyr = getLayer();
+    if (!lyr) return;
+    if (on) lyr.addTo(map); else map.removeLayer(lyr);
   });
 }
-toggle('btnRain', null);
-toggle('btnFlood', flood);
-toggle('btnDoseki', doseki);
+bindToggle('btnRain',   function(){ return rain; });
+bindToggle('btnFlood',  function(){ return flood; });
+bindToggle('btnDoseki', function(){ return doseki; });
 
-/* ---- 現在地 ---- */
-let meMarker=null, meCircle=null;
-function goHere(){
-  if(!navigator.geolocation){ alert('この端末では現在地を取得できません'); return; }
-  navigator.geolocation.getCurrentPosition(p=>{
-    const ll=[p.coords.latitude, p.coords.longitude];
-    map.setView(ll, 15);
-    if(meMarker) map.removeLayer(meMarker);
-    if(meCircle) map.removeLayer(meCircle);
-    meCircle = L.circle(ll,{radius:Math.min(p.coords.accuracy,400),color:'#E2453C',weight:1.5,fillColor:'#E2453C',fillOpacity:.10}).addTo(map);
-    meMarker = L.circleMarker(ll,{radius:11,color:'#fff',weight:4,fillColor:'#E2453C',fillOpacity:1,
-                                  className:'me-dot'}).addTo(map).bindTooltip('現在地',{permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
-    // 国交省の現在地周辺カメラへ座標を渡す
-    document.getElementById('camLink').href =
-      `https://www.river.go.jp/kawabou/pcfull/tm?zoomlevel=13&timeaxis=1&mapl=${ll[1]}%2C${ll[0]}&kind=camera`;
-  }, ()=> alert('現在地を取得できませんでした。設定で位置情報を許可してください。'),
-     {enableHighAccuracy:true, timeout:8000});
+/* ===== 現在地 =====
+   起動時は静かに取得（失敗しても警告を出さない）
+   ボタンは高精度で取り直し、だめなら精度を落として再挑戦     */
+let meMarker = null, meCircle = null;
+
+function showMe(p, zoom){
+  const ll = [p.coords.latitude, p.coords.longitude];
+  map.setView(ll, zoom);
+  if (meMarker) map.removeLayer(meMarker);
+  if (meCircle) map.removeLayer(meCircle);
+  meCircle = L.circle(ll,{radius:Math.min(p.coords.accuracy||120,400),
+    color:'#E2453C',weight:1.5,fillColor:'#E2453C',fillOpacity:.10}).addTo(map);
+  meMarker = L.circleMarker(ll,{radius:11,color:'#fff',weight:4,
+    fillColor:'#E2453C',fillOpacity:1}).addTo(map)
+    .bindTooltip('現在地',{permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
+  document.getElementById('camLink').href =
+    'https://www.river.go.jp/kawabou/pcfull/tm?zoomlevel=13&timeaxis=1&mapl='+
+    ll[1]+'%2C'+ll[0]+'&kind=camera';
 }
-document.getElementById('locate').addEventListener('click', goHere);
 
-/* ---- カメラ地点（cameras.json があれば地図に出す） ---------
-   cameras.json の形：
-   { "cameras":[
-       {"name":"石神井川 豊石橋","river":"石神井川","pref":"東京都",
-        "lat":35.7xxx,"lng":139.6xxx,"url":"https://...","source":"東京都建設局"}
-   ]}
-   lat / lng が入っているものだけピンになります。
------------------------------------------------------------- */
+function geoMessage(e){
+  if (e && e.code === 1) return '位置情報が許可されていません。ブラウザの設定で、このサイトに位置情報を許可してください。';
+  if (e && e.code === 3) return '位置情報の取得に時間がかかっています。屋外や窓際でもう一度お試しください。';
+  return '現在地を取得できませんでした。';
+}
+
+function locateQuiet(){
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    function(p){ showMe(p,15); },
+    function(){},
+    {enableHighAccuracy:false, timeout:15000, maximumAge:300000}
+  );
+}
+
+function locateByUser(){
+  if (!navigator.geolocation){ toast('この端末では現在地を取得できません'); return; }
+  toast('現在地を探しています…', 20000);
+  navigator.geolocation.getCurrentPosition(
+    function(p){ showMe(p,16); toast('現在地を表示しました', 2000); },
+    function(){
+      navigator.geolocation.getCurrentPosition(
+        function(p){ showMe(p,15); toast('現在地を表示しました（おおよその位置）', 3000); },
+        function(e){ toast(geoMessage(e), 7000); },
+        {enableHighAccuracy:false, timeout:15000, maximumAge:600000}
+      );
+    },
+    {enableHighAccuracy:true, timeout:20000, maximumAge:0}
+  );
+}
+document.getElementById('locate').addEventListener('click', locateByUser);
+
+/* ===== カメラ地点（cameras.json があれば表示） =====
+   lat / lng が数値のものだけピンになります。            */
 fetch('cameras.json',{cache:'no-store'})
-  .then(r => r.ok ? r.json() : Promise.reject())
-  .then(d => {
-    (d.cameras||[]).forEach(c=>{
-      if(typeof c.lat!=='number' || typeof c.lng!=='number') return;
+  .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
+  .then(function(d){
+    (d.cameras||[]).forEach(function(c){
+      if (typeof c.lat !== 'number' || typeof c.lng !== 'number') return;
       L.circleMarker([c.lat,c.lng],{radius:8,color:'#fff',weight:2,
-        fillColor:'#C9A75A',fillOpacity:1})
-       .addTo(map)
-       .bindPopup(
-         `<b>${c.name}</b>` +
-         (c.river?`<br>${c.river}`:'') +
-         (c.source?`<br><span style="color:#9FB0C8;font-size:11px">${c.source}</span>`:'') +
-         (c.url?`<br><a href="${c.url}" target="_blank" rel="noopener">映像を開く</a>`:'')
-       );
+        fillColor:'#C9A75A',fillOpacity:1}).addTo(map)
+       .bindPopup('<b>'+c.name+'</b>'
+         + (c.river  ? '<br>'+c.river : '')
+         + (c.source ? '<br><span style="color:#9FB0C8;font-size:11px">'+c.source+'</span>' : '')
+         + (c.url    ? '<br><a href="'+c.url+'" target="_blank" rel="noopener">映像を開く</a>' : ''));
     });
   })
-  .catch(()=>{ /* cameras.json が無くても動く */ });
+  .catch(function(){});
 
-/* 起動時に現在地を試す（拒否されても地図は使える） */
-goHere();
+locateQuiet();
 </script>
 </body>
 </html>
