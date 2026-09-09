@@ -581,3 +581,26 @@ if(natLink){
       lastLat=pos.coords.latitude;lastLon=pos.coords.longitude;
       natLink.href=riverUrl(lastLat,lastLon);
       window.open(natLink.href,'_blank');
+    },()=>{window.open('https://www.river.go.jp/','_blank');},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+  });
+}
+
+btn.addEventListener('click',()=>{
+  if(!('geolocation' in navigator)){
+    statusEl.textContent='この端末では位置情報を取得できません。';
+    statusEl.classList.add('err');manual.classList.add('show');return;
+  }
+  btn.disabled=true;statusEl.textContent='現在地を取得中…';statusEl.classList.remove('err');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    btn.disabled=false;manual.classList.remove('show');
+    show(pos.coords.latitude,pos.coords.longitude,null);
+  },()=>{
+    btn.disabled=false;
+    statusEl.textContent='位置情報を取得できませんでした。';
+    statusEl.classList.add('err');manual.classList.add('show');
+  },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+});
+</script>
+</body>
+</html>
