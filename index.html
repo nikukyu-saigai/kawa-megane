@@ -66,12 +66,23 @@
     background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.35);
     padding:6px 9px;border-radius:8px;color:#CBD6E6}
 
+  .me-tip{background:#E2453C;color:#fff;border:none;font-size:11px;font-weight:700;
+    padding:3px 8px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .me-tip::before{border-top-color:#E2453C !important}
   .leaflet-popup-content-wrapper{background:#16233F;color:#F6F1E5;border-radius:12px}
   .leaflet-popup-tip{background:#16233F}
   .leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.6}
   .leaflet-popup-content a{display:inline-block;margin-top:8px;background:#C9A75A;color:#1B2A4A;
     text-decoration:none;font-weight:700;padding:7px 12px;border-radius:8px}
-  .leaflet-bottom.leaflet-left{bottom:calc(150px + var(--pad))}
+  /* 雨雲は乗算合成にして、地名・道路・川が透けるようにする */
+  .rain-tiles{mix-blend-mode:multiply}
+  /* 凡例 */
+  #legend{position:absolute;z-index:1000;left:10px;bottom:calc(126px + var(--pad));
+    background:rgba(15,25,41,.88);border:1px solid rgba(201,167,90,.35);border-radius:8px;
+    padding:6px 8px;font-size:9.5px;color:#CBD6E6;line-height:1.35}
+  #legend .row{display:flex;align-items:center;gap:5px;margin-top:2px}
+  #legend i{width:14px;height:8px;border-radius:2px;display:inline-block}
+  .leaflet-bottom.leaflet-left{bottom:calc(238px + var(--pad))}
   .leaflet-control-attribution{font-size:9px !important;background:rgba(255,255,255,.75) !important}
 </style>
 </head>
@@ -90,6 +101,14 @@
   <button class="lyr on" id="btnRain">雨雲<small>いま降っている</small></button>
   <button class="lyr" id="btnFlood">浸水想定<small>洪水で浸かる</small></button>
   <button class="lyr" id="btnDoseki">土砂<small>警戒区域</small></button>
+</div>
+
+<div id="legend">
+  <div style="color:#E3C572;font-weight:700">雨の強さ</div>
+  <div class="row"><i style="background:#A0D2FF"></i>弱い</div>
+  <div class="row"><i style="background:#2B85EF"></i>やや強い</div>
+  <div class="row"><i style="background:#FAF43C"></i>強い</div>
+  <div class="row"><i style="background:#FF2800"></i>激しい</div>
 </div>
 
 <button id="locate" title="現在地へ">◎</button>
@@ -118,7 +137,7 @@
 
 const map = L.map('map', {
   center: [35.7365, 139.5800],   // 初期表示：西武池袋線あたり
-  zoom: 12,
+  zoom: 14,
   zoomControl: false,
   attributionControl: true
 });
@@ -156,10 +175,10 @@ async function loadRain(){
     const now = list.filter(o => o.basetime === o.validtime).pop() || list[0];
     const url = `https://www.jma.go.jp/bosai/jmatile/data/nowc/${now.basetime}/none/${now.validtime}/surf/hrpns/{z}/{x}/{y}.png`;
     if (rain) map.removeLayer(rain);
-    rain = L.tileLayer(url,{opacity:0.75, maxNativeZoom:10, maxZoom:18, zIndex:400});
+    rain = L.tileLayer(url,{opacity:0.55, maxNativeZoom:10, maxZoom:18, zIndex:400, className:'rain-tiles'});
     if (document.getElementById('btnRain').classList.contains('on')) rain.addTo(map);
-    const t = now.validtime; // 例 20260909T014000
-    el.textContent = `雨雲 ${t.slice(4,6)}/${t.slice(6,8)} ${t.slice(9,11)}:${t.slice(11,13)} 時点`;
+    const d = String(now.validtime).replace(/[^0-9]/g,''); // 例 20260909091000
+    el.textContent = `雨雲 ${d.slice(4,6)}/${d.slice(6,8)} ${d.slice(8,10)}:${d.slice(10,12)} 時点`;
   }catch(e){
     el.textContent = '雨雲を取得できませんでした';
     document.getElementById('btnRain').classList.remove('on');
@@ -188,11 +207,12 @@ function goHere(){
   if(!navigator.geolocation){ alert('この端末では現在地を取得できません'); return; }
   navigator.geolocation.getCurrentPosition(p=>{
     const ll=[p.coords.latitude, p.coords.longitude];
-    map.setView(ll, 14);
+    map.setView(ll, 15);
     if(meMarker) map.removeLayer(meMarker);
     if(meCircle) map.removeLayer(meCircle);
-    meCircle = L.circle(ll,{radius:Math.min(p.coords.accuracy,400),color:'#4FA3E3',weight:1,fillOpacity:.15}).addTo(map);
-    meMarker = L.circleMarker(ll,{radius:7,color:'#fff',weight:2,fillColor:'#4FA3E3',fillOpacity:1}).addTo(map);
+    meCircle = L.circle(ll,{radius:Math.min(p.coords.accuracy,400),color:'#E2453C',weight:1.5,fillColor:'#E2453C',fillOpacity:.10}).addTo(map);
+    meMarker = L.circleMarker(ll,{radius:11,color:'#fff',weight:4,fillColor:'#E2453C',fillOpacity:1,
+                                  className:'me-dot'}).addTo(map).bindTooltip('現在地',{permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
     // 国交省の現在地周辺カメラへ座標を渡す
     document.getElementById('camLink').href =
       `https://www.river.go.jp/kawabou/pcfull/tm?zoomlevel=13&timeaxis=1&mapl=${ll[1]}%2C${ll[0]}&kind=camera`;
