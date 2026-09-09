@@ -96,6 +96,13 @@ a.cam:active{background:var(--panel2)}
 .aux a{display:block;text-align:center;text-decoration:none;padding:13px;
   font-weight:700;font-size:14px;background:var(--gold);color:#1A1204;margin-bottom:8px}
 .aux a.sub{background:transparent;border:1px solid var(--gold-dim);color:var(--cream)}
+.more{margin-top:14px;border-top:1px solid rgba(201,167,90,.22);padding-top:12px}
+.more summary{cursor:pointer;font-size:12.5px;color:var(--cream-dim);list-style:none;
+  display:flex;align-items:center;gap:7px;padding:4px 0}
+.more summary::-webkit-details-marker{display:none}
+.more summary::before{content:"＋";color:var(--gold);font-size:13px}
+.more[open] summary::before{content:"−"}
+.more a.sub{margin-top:9px}
 .serious{position:relative;border-left:3px solid var(--alert);padding:14px 84px 14px 15px;margin-top:30px}
 .serious .staff{right:0;bottom:8px;height:72px}
 .serious p{margin:0;font-size:13px;line-height:1.85}
@@ -179,12 +186,15 @@ footer{padding:26px 20px 0;font-size:11.5px;color:rgba(244,239,227,.4);text-alig
 
   <div class="aux">
     <h3>一覧にない川を見るとき</h3>
-    <p>全国の河川カメラ・水位はこちらから。開いたあと地図を動かし、カメラ表示に切り替えてください。気象庁キキクルは現在地の自動取得に対応しています。</p>
-    <a id="prefLink" href="https://www.river.go.jp/index/twninfo/mb?prefCd=1301&amp;type=obs&amp;tm=cctv" target="_blank" rel="noopener">お住まいの都道府県の河川カメラ一覧（国交省）</a>
-    <a class="sub" id="natLink" href="https://www.river.go.jp/" target="_blank" rel="noopener">川の防災情報 現在地周辺のカメラ一覧</a>
-    <a class="sub" href="https://typhoon.yahoo.co.jp/weather/river/" target="_blank" rel="noopener">Yahoo!天気・災害 河川水位・ライブカメラ</a>
-    <a class="sub" href="https://www.jma.go.jp/bosai/risk/floodmesh.html" target="_blank" rel="noopener">気象庁 洪水キキクル</a>
-    <a class="sub" href="https://www.kasen-suibo.metro.tokyo.lg.jp/" target="_blank" rel="noopener">東京都 水防災総合情報システム</a>
+    <p id="auxLead">現在地の都道府県の河川カメラ一覧をひらきます。</p>
+    <a id="prefLink" href="https://www.river.go.jp/index/twninfo/mb?prefCd=1301&amp;type=obs&amp;tm=cctv" target="_blank" rel="noopener">お住まいの都道府県の河川カメラ一覧</a>
+    <details class="more">
+      <summary>そのほかの防災情報</summary>
+      <a class="sub" id="natLink" href="https://www.river.go.jp/" target="_blank" rel="noopener">現在地周辺の観測所一覧（川の防災情報）</a>
+      <a class="sub" href="https://typhoon.yahoo.co.jp/weather/river/" target="_blank" rel="noopener">河川の水位（Yahoo!天気・災害）</a>
+      <a class="sub" href="https://www.jma.go.jp/bosai/risk/floodmesh.html" target="_blank" rel="noopener">洪水キキクル（気象庁）</a>
+      <a class="sub" href="https://www.kasen-suibo.metro.tokyo.lg.jp/" target="_blank" rel="noopener">東京都 水防災総合情報システム</a>
+    </details>
   </div>
 
   <div class="serious">
@@ -513,7 +523,9 @@ function show(lat,lon,label){
   const pf=findPref(lat,lon);
   if(prefLink){
     prefLink.href=prefCamUrl(pf[1]);
-    prefLink.textContent=pf[0]+'の河川カメラ一覧（国交省）';
+    prefLink.textContent=pf[0]+'の河川カメラ一覧をひらく';
+    const al=document.getElementById('auxLead');
+    if(al)al.textContent=pf[0]+'の河川カメラ一覧をひらきます。国交省「川の防災情報」の公式ページです。';
   }
   statusEl.classList.remove('err');
   statusEl.innerHTML=label?('起点：<b>'+label+'</b>'):('現在地 <b>'+lat.toFixed(4)+', '+lon.toFixed(4)+'</b>');
