@@ -517,6 +517,20 @@ function distKm(a1,o1,a2,o2){
 }
 function fmt(v){return v<1?Math.round(v*1000)+'m':v.toFixed(1)+'km';}
 
+let ALL=null;
+function camUrl(c){
+  const itm=(c[7]===3)?100:200;
+  return 'https://www.river.go.jp/kawabou/mb/tm?zm=15&clat='+c[2]+'&clon='+c[3]+
+   '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0'+
+   '&itmkndCd='+itm+'&scamId='+c[4]+'&ownCd='+c[5]+'&sysCamId='+c[6];
+}
+function row(nm,sub,km,href,live){
+  const a=document.createElement('a');
+  a.className='cam';a.href=href;a.target='_blank';a.rel='noopener';
+  a.innerHTML='<div><div class="cam-name">'+nm+'</div><div class="cam-sub">'+sub+
+    (live?' ・ライブ映像':'')+'</div></div><div class="cam-km">'+fmt(km)+'</div>';
+  return a;
+}
 function show(lat,lon,label){
   lastLat=lat;lastLon=lon;
   if(natLink)natLink.href=riverUrl(lat,lon);
@@ -529,20 +543,30 @@ function show(lat,lon,label){
   }
   statusEl.classList.remove('err');
   statusEl.innerHTML=label?('起点：<b>'+label+'</b>'):('現在地 <b>'+lat.toFixed(4)+', '+lon.toFixed(4)+'</b>');
-  const sorted=CAMS.map(c=>({name:c[0],area:c[1],vid:c[4],q:c[5],km:distKm(lat,lon,c[2],c[3])}))
-    .sort((a,b)=>a.km-b.km);
-  listEl.innerHTML='<p class="lead">近い順（押すとライブ映像が開きます）</p>';
-  sorted.forEach(c=>{
-    const a=document.createElement('a');
-    a.className='cam';
-    a.href=c.vid?('https://www.youtube.com/watch?v='+c.vid)
-      :('https://www.youtube.com/results?search_query='+encodeURIComponent('東京都水防チャンネル '+c.q));
-    a.target='_blank';a.rel='noopener';
-    a.innerHTML='<div><div class="cam-name">'+c.name+'</div><div class="cam-sub">'+c.area+
-      (c.vid?'':' ・検索で開く')+'</div></div><div class="cam-km">'+fmt(c.km)+'</div>';
-    listEl.appendChild(a);
+
+  const items=[];
+  CAMS.forEach(c=>{
+    items.push({nm:c[0],sub:c[1],km:distKm(lat,lon,c[2],c[3]),live:true,
+      href:c[4]?('https://www.youtube.com/watch?v='+c[4])
+        :('https://www.youtube.com/results?search_query='+encodeURIComponent('東京都水防チャンネル '+c[5]))});
   });
+  if(ALL){
+    ALL.forEach(c=>{
+      const km=distKm(lat,lon,c[2],c[3]);
+      if(km<30)items.push({nm:c[0],sub:c[1],km:km,live:false,href:camUrl(c)});
+    });
+  }
+  items.sort((a,b)=>a.km-b.km);
+  listEl.innerHTML='<p class="lead">近い順（押すとカメラが開きます）</p>';
+  items.slice(0,20).forEach(c=>listEl.appendChild(row(c.nm,c.sub,c.km,c.href,c.live)));
+  if(!ALL)listEl.insertAdjacentHTML('beforeend',
+    '<p class="hint" style="padding:14px 0 0">全国のカメラを読み込み中です…</p>');
 }
+
+fetch('./cameras.json').then(r=>r.json()).then(d=>{
+  ALL=d;
+  if(lastLat!==null)show(lastLat,lastLon,null);
+}).catch(()=>{});
 
 document.querySelectorAll('#manual .chips button').forEach(b=>{
   b.addEventListener('click',()=>show(+b.dataset.lat,+b.dataset.lon,b.textContent));
@@ -557,26 +581,3 @@ if(natLink){
       lastLat=pos.coords.latitude;lastLon=pos.coords.longitude;
       natLink.href=riverUrl(lastLat,lastLon);
       window.open(natLink.href,'_blank');
-    },()=>{window.open('https://www.river.go.jp/','_blank');},
-    {enableHighAccuracy:true,timeout:10000,maximumAge:60000});
-  });
-}
-
-btn.addEventListener('click',()=>{
-  if(!('geolocation' in navigator)){
-    statusEl.textContent='この端末では位置情報を取得できません。';
-    statusEl.classList.add('err');manual.classList.add('show');return;
-  }
-  btn.disabled=true;statusEl.textContent='現在地を取得中…';statusEl.classList.remove('err');
-  navigator.geolocation.getCurrentPosition(pos=>{
-    btn.disabled=false;manual.classList.remove('show');
-    show(pos.coords.latitude,pos.coords.longitude,null);
-  },()=>{
-    btn.disabled=false;
-    statusEl.textContent='位置情報を取得できませんでした。';
-    statusEl.classList.add('err');manual.classList.add('show');
-  },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
-});
-</script>
-</body>
-</html>
