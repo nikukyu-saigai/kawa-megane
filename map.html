@@ -39,12 +39,10 @@
   #rtime{position:absolute;z-index:1000;left:10px;top:114px;font-size:11px;
     background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.35);
     padding:6px 9px;border-radius:8px;color:#CBD6E6}
-  #mapsrc{position:absolute;z-index:1000;left:10px;top:148px;font-size:10px;
-    background:rgba(15,25,41,.8);border:1px solid rgba(201,167,90,.22);
-    padding:4px 8px;border-radius:7px;color:#9FB0C8;max-width:calc(100vw - 130px)}
   #nearest{position:absolute;z-index:1000;left:10px;top:180px;font-size:12px;line-height:1.5;
     background:rgba(15,25,41,.9);border:1px solid rgba(201,167,90,.4);
-    padding:7px 9px;border-radius:8px;color:#CBD6E6;max-width:calc(100vw - 130px)}
+    padding:7px 9px;border-radius:8px;color:#CBD6E6;max-width:calc(100vw - 130px);
+    display:none}
   #nearest b{color:var(--gold);font-size:13px}
   #nearest .d{color:#9FB0C8;font-size:10.5px}
 
@@ -55,10 +53,10 @@
   #legend .row{display:flex;align-items:center;gap:4px}
   #legend i{width:13px;height:8px;border-radius:2px;display:inline-block}
 
-  #layers{position:absolute;z-index:1000;right:10px;top:114px;display:flex;flex-direction:column;gap:8px}
+  #layers{position:absolute;z-index:1000;right:10px;top:114px;display:flex;flex-direction:column;gap:5px}
   .lyr{appearance:none;border:1.5px solid rgba(201,167,90,.55);background:rgba(15,25,41,.86);
-    color:var(--cream);font-size:12px;line-height:1.25;padding:9px 10px;border-radius:10px;
-    width:106px;text-align:center;cursor:pointer}
+    color:var(--cream);font-size:11px;line-height:1.2;padding:5px 8px;border-radius:8px;
+    width:64px;text-align:center;cursor:pointer}
   .lyr small{display:block;font-size:10px;color:#9FB0C8;margin-top:3px}
   .lyr.on{background:var(--gold);color:#1B2A4A;border-color:var(--gold);font-weight:700}
   .lyr.on small{color:#4A3D1C}
@@ -114,7 +112,6 @@
 </header>
 
 <div id="rtime">雨雲を読み込み中…</div>
-<div id="mapsrc">地図を読み込み中…</div>
 <div id="nearest">現在地を取得すると、一番近い避難場所を表示します</div>
 
 <div id="legend">
@@ -169,7 +166,6 @@ function relayout(){
   const gap = 8;
 
   const rtime = document.getElementById('rtime');
-  const mapsrc = document.getElementById('mapsrc');
   const nearest = document.getElementById('nearest');
   const legend = document.getElementById('legend');
   const layers = document.getElementById('layers');
@@ -177,8 +173,6 @@ function relayout(){
   let y = headerH + gap;
   rtime.style.top = y + 'px';
   y += rtime.offsetHeight + gap;
-  mapsrc.style.top = y + 'px';
-  y += mapsrc.offsetHeight + gap;
   nearest.style.top = y + 'px';
   y += nearest.offsetHeight + gap;
   legend.style.top = y + 'px';
@@ -193,7 +187,6 @@ window.addEventListener('orientationchange', function(){ setTimeout(relayout, 20
 setTimeout(relayout, 0);
 setTimeout(relayout, 600); // 雨雲/地図の読み込みでテキストが変わった後にも再調整
 
-const srcEl   = document.getElementById('mapsrc');
 const timeEl  = document.getElementById('rtime');
 const toastEl = document.getElementById('toast');
 
@@ -222,10 +215,9 @@ function useOSM(reason){
   if (map.hasLayer(gsi)) map.removeLayer(gsi);
   osm.addTo(map);
   osm.setZIndex(1);
-  srcEl.textContent = '地図：OpenStreetMap（' + reason + '）';
   relayout();
 }
-gsi.on('tileload',  function(){ gsiOk++; if(!baseSwitched){ srcEl.textContent = '地図：地理院タイル'; relayout(); } });
+gsi.on('tileload',  function(){ gsiOk++; });
 gsi.on('tileerror', function(){ gsiErr++; if(gsiErr>=4 && gsiOk===0) useOSM('地理院タイルが読めないため'); });
 gsi.addTo(map);
 gsi.setZIndex(1);
@@ -303,7 +295,7 @@ let shelterPinsOn = true;
 
 fetch('shelters.json',{cache:'no-store'})
   .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
-  .then(function(d){ SHELTERS = d; redrawShelterPins(); })
+  .then(function(d){ SHELTERS = d; redrawShelterPins(); if (lastPos) updateNearestPanel(lastPos); })
   .catch(function(){ document.getElementById('nearest').textContent = '避難所データを読み込めませんでした'; });
 
 function distMeters(lat1, lng1, lat2, lng2){
@@ -356,10 +348,11 @@ document.getElementById('btnShelter').addEventListener('click', function(e){
 /* ===== 現在地 =====
    起動時は静かに取得（失敗しても警告を出さない）
    ボタンは高精度で取り直し、だめなら精度を落として再挑戦     */
-let meMarker = null, meCircle = null;
+let meMarker = null, meCircle = null, lastPos = null;
 
 function showMe(p, zoom){
   const ll = [p.coords.latitude, p.coords.longitude];
+  lastPos = ll;
   map.setView(ll, zoom);
   if (meMarker) map.removeLayer(meMarker);
   if (meCircle) map.removeLayer(meCircle);
@@ -375,16 +368,25 @@ function showMe(p, zoom){
 
   const nearestEl = document.getElementById('nearest');
   const routeLink = document.getElementById('shelterRouteLink');
+  updateNearestPanel(ll);
+}
+
+function updateNearestPanel(ll){
+  const nearestEl = document.getElementById('nearest');
+  const routeLink = document.getElementById('shelterRouteLink');
   const r = findNearestShelter(ll[0], ll[1]);
   if (r.shelter){
     const label = r.dist < 1000 ? Math.round(r.dist)+'m' : (r.dist/1000).toFixed(1)+'km';
     nearestEl.innerHTML = '一番近い避難場所　<b>'+r.shelter[0]+'</b><br><span class="d">'+r.shelter[1]+'　約'+label+'</span>';
     routeLink.href = 'https://www.google.com/maps/dir/?api=1&origin='+ll[0]+','+ll[1]+'&destination='+r.shelter[2]+','+r.shelter[3];
+    nearestEl.style.display = 'block';
     relayout();
-  } else {
-    nearestEl.textContent = SHELTERS.length ? '近くに避難所データが見つかりませんでした' : '避難所データを読み込み中です…';
+  } else if (SHELTERS.length){
+    nearestEl.textContent = '近くに避難所データが見つかりませんでした';
+    nearestEl.style.display = 'block';
     relayout();
   }
+  // 避難所データがまだ読み込み中の場合は、枠を出さずに黙って待つ（表示の乱れを避けるため）
 }
 
 function geoMessage(e){
