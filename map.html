@@ -36,9 +36,6 @@
   .badge{display:inline-block;margin-top:6px;font-size:10.5px;background:rgba(201,167,90,.18);
     border:1px solid rgba(201,167,90,.5);color:var(--gold);padding:3px 8px;border-radius:999px}
 
-  #rtime{position:absolute;z-index:1000;left:10px;top:114px;font-size:11px;
-    background:rgba(15,25,41,.86);border:1px solid rgba(201,167,90,.35);
-    padding:6px 9px;border-radius:8px;color:#CBD6E6}
   #nearest{position:absolute;z-index:1000;left:10px;top:180px;font-size:12px;line-height:1.5;
     background:rgba(15,25,41,.9);border:1px solid rgba(201,167,90,.4);
     padding:7px 9px;border-radius:8px;color:#CBD6E6;max-width:calc(100vw - 130px);
@@ -53,13 +50,26 @@
   #legend .row{display:flex;align-items:center;gap:4px}
   #legend i{width:13px;height:8px;border-radius:2px;display:inline-block}
 
-  #layers{position:absolute;z-index:1000;right:10px;top:114px;display:flex;flex-direction:column;gap:5px}
+  #layers{position:absolute;z-index:1000;right:10px;top:114px}
+  .layerBar{display:flex;gap:5px}
   .lyr{appearance:none;border:1.5px solid rgba(201,167,90,.55);background:rgba(15,25,41,.86);
     color:var(--cream);font-size:11px;line-height:1.2;padding:5px 8px;border-radius:8px;
     width:64px;text-align:center;cursor:pointer}
   .lyr small{display:block;font-size:10px;color:#9FB0C8;margin-top:3px}
   .lyr.on{background:var(--gold);color:#1B2A4A;border-color:var(--gold);font-weight:700}
   .lyr.on small{color:#4A3D1C}
+  .lyr.alert{border-color:rgba(226,69,60,.6)}
+  .lyr.alert.on{background:#E2453C;color:#fff;border-color:#E2453C}
+
+  #layersPanel{display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:1000;
+    background:rgba(15,25,41,.96);border:1px solid rgba(201,167,90,.4);border-radius:10px;
+    padding:8px;width:150px}
+  #layersPanel.open{display:block}
+  .lyrGroupTitle{font-size:10px;color:var(--gold);font-weight:700;margin:2px 0 5px}
+  .lyrGroupTitle.alert{color:#FF8A7A;margin-top:10px}
+  .lyrGroupTitle small{display:block;font-weight:400;color:#9FB0C8;font-size:9px;margin-top:1px}
+  .lyrGroupRow{display:flex;flex-wrap:wrap;gap:5px}
+  .lyrGroupRow .lyr{width:auto;flex:1 1 62px}
 
   #locate{position:absolute;z-index:1000;right:10px;
     bottom:calc(var(--footerH) + var(--pad));
@@ -76,7 +86,7 @@
   footer{position:absolute;left:0;right:0;bottom:0;z-index:1000;
     background:linear-gradient(0deg,rgba(15,25,41,.96),rgba(15,25,41,.86) 60%,transparent);
     padding:18px 10px calc(12px + var(--pad))}
-  .acts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:560px;margin:0 auto}
+  .acts{display:grid;grid-template-columns:1fr;gap:8px;max-width:420px;margin:0 auto}
   .act{display:block;text-align:center;text-decoration:none;border-radius:12px;padding:11px 6px;
     font-size:12.5px;line-height:1.3;font-weight:700;border:1.5px solid rgba(201,167,90,.5);
     background:rgba(22,35,63,.92);color:var(--cream)}
@@ -111,7 +121,6 @@
   <div class="badge">避難所案内：全国版（テスト中）</div>
 </header>
 
-<div id="rtime">雨雲を読み込み中…</div>
 <div id="nearest">現在地を取得すると、一番近い避難場所を表示します</div>
 
 <div id="legend">
@@ -123,10 +132,23 @@
 </div>
 
 <div id="layers">
-  <button class="lyr on" id="btnRain">雨雲</button>
-  <button class="lyr" id="btnFlood">浸水想定</button>
-  <button class="lyr" id="btnDoseki">土砂</button>
-  <button class="lyr on" id="btnShelter">避難所</button>
+  <div class="layerBar">
+    <button class="lyr on" id="btnShelter">避難所</button>
+    <button class="lyr" id="btnLayersToggle">表示 ▾</button>
+  </div>
+  <div id="layersPanel">
+    <div class="lyrGroupTitle">ハザードマップ<small>想定・平常時も表示</small></div>
+    <div class="lyrGroupRow">
+      <button class="lyr" id="btnFlood">浸水想定</button>
+      <button class="lyr" id="btnDoseki">土砂想定</button>
+    </div>
+    <div class="lyrGroupTitle alert">リアルタイム警報<small>気象庁・10分毎更新</small></div>
+    <div class="lyrGroupRow">
+      <button class="lyr on alert" id="btnRain">雨雲</button>
+      <button class="lyr alert" id="btnKikikuruLand">土砂</button>
+      <button class="lyr alert" id="btnKikikuruInund">浸水</button>
+    </div>
+  </div>
 </div>
 
 <button id="locate" title="現在地へ">◎</button>
@@ -136,13 +158,9 @@
   <div class="acts">
     <a class="act pri" id="shelterRouteLink" href="#" target="_blank" rel="noopener">
       最寄りの避難所へ<small>Googleマップでルート</small></a>
-    <a class="act" href="https://www.jma.go.jp/bosai/risk/" target="_blank" rel="noopener">
-      洪水キキクル<small>気象庁 危険度分布</small></a>
-    <a class="act" id="stgLink" href="https://www.river.go.jp/" target="_blank" rel="noopener">
-      河川の水位<small>川の防災情報</small></a>
   </div>
   <div class="note">
-    出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>／<a href="https://disaportal.gsi.go.jp/" target="_blank" rel="noopener">ハザードマップポータル</a>／<a href="https://hinanmap.gsi.go.jp/" target="_blank" rel="noopener">指定緊急避難場所データ</a>／気象庁<br>
+    出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>／<a href="https://disaportal.gsi.go.jp/" target="_blank" rel="noopener">ハザードマップポータル</a>／<a href="https://hinanmap.gsi.go.jp/" target="_blank" rel="noopener">指定緊急避難場所データ</a>／気象庁・<a href="https://www.jma.go.jp/bosai/risk/" target="_blank" rel="noopener">キキクル（危険度分布）</a><br>
     避難所データは最新でない場合があります。正確な情報は必ず自治体にご確認ください。公式の防災情報ではありません。避難の判断は自治体・気象庁の発表に従ってください。
   </div>
 </footer>
@@ -165,14 +183,11 @@ function relayout(){
   const headerH = document.querySelector('header').offsetHeight;
   const gap = 8;
 
-  const rtime = document.getElementById('rtime');
   const nearest = document.getElementById('nearest');
   const legend = document.getElementById('legend');
   const layers = document.getElementById('layers');
 
   let y = headerH + gap;
-  rtime.style.top = y + 'px';
-  y += rtime.offsetHeight + gap;
   nearest.style.top = y + 'px';
   y += nearest.offsetHeight + gap;
   legend.style.top = y + 'px';
@@ -187,7 +202,6 @@ window.addEventListener('orientationchange', function(){ setTimeout(relayout, 20
 setTimeout(relayout, 0);
 setTimeout(relayout, 600); // 雨雲/地図の読み込みでテキストが変わった後にも再調整
 
-const timeEl  = document.getElementById('rtime');
 const toastEl = document.getElementById('toast');
 
 function toast(msg, ms){
@@ -262,10 +276,9 @@ function loadRain(){
       if (rain) map.removeLayer(rain);
       rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:18,zIndex:400,className:'rain-tiles'});
       if (wasOn) rain.addTo(map);
-      timeEl.textContent = '雨雲 ' + fmtJMATime(now.validtime);
       relayout();
     })
-    .catch(function(){ timeEl.textContent = '雨雲を取得できませんでした'; relayout(); });
+    .catch(function(){ relayout(); });
 }
 loadRain();
 setInterval(loadRain, 5*60*1000);
@@ -283,6 +296,48 @@ function bindToggle(id, getLayer){
 bindToggle('btnRain',   function(){ return rain; });
 bindToggle('btnFlood',  function(){ return flood; });
 bindToggle('btnDoseki', function(){ return doseki; });
+
+/* ===== レイヤーパネルの開閉 ===== */
+document.getElementById('btnLayersToggle').addEventListener('click', function(){
+  document.getElementById('layersPanel').classList.toggle('open');
+});
+
+/* ===== キキクル（気象庁 危険度分布・リアルタイム）試験実装 =====
+   雨雲ナウキャストと同じタイル配信の仕組みを利用。
+   URLの組み立て方が公式に案内されたものではないため、
+   表示できない場合は静かに失敗し、ボタンだけ残る。          */
+let kikikuruLand = null, kikikuruInund = null;
+
+function loadKikikuru(){
+  fetch('https://www.jma.go.jp/bosai/jmatile/data/risk/targetTimes.json',{cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      const now = list.filter(function(o){ return o.basetime===o.validtime; }).pop()
+                  || list[list.length-1];
+      const base = 'https://www.jma.go.jp/bosai/jmatile/data/risk/'+now.basetime+'/none/'+now.validtime+'/surf/';
+
+      const wasLandOn = document.getElementById('btnKikikuruLand').classList.contains('on');
+      const wasInundOn = document.getElementById('btnKikikuruInund').classList.contains('on');
+      if (kikikuruLand) map.removeLayer(kikikuruLand);
+      if (kikikuruInund) map.removeLayer(kikikuruInund);
+
+      kikikuruLand = L.tileLayer(base+'land/{z}/{x}/{y}.png',
+        {opacity:0.7, maxNativeZoom:11, maxZoom:14, zIndex:350,
+         attribution:'気象庁 キキクル（土砂）'});
+      kikikuruInund = L.tileLayer(base+'inund/{z}/{x}/{y}.png',
+        {opacity:0.7, maxNativeZoom:11, maxZoom:14, zIndex:350,
+         attribution:'気象庁 キキクル（浸水）'});
+
+      if (wasLandOn) kikikuruLand.addTo(map);
+      if (wasInundOn) kikikuruInund.addTo(map);
+    })
+    .catch(function(){ /* 取得できない場合は静かに諦める（ボタンは残す） */ });
+}
+loadKikikuru();
+setInterval(loadKikikuru, 10*60*1000); // 10分毎に最新のキキクルへ更新
+
+bindToggle('btnKikikuruLand',  function(){ return kikikuruLand; });
+bindToggle('btnKikikuruInund', function(){ return kikikuruInund; });
 
 /* ===== 避難所（国土地理院 指定緊急避難場所データ・全国 115,829件） =====
    データは shelters.json（[名称, 住所, 緯度, 経度] の配列）を別途読み込む。
@@ -361,10 +416,6 @@ function showMe(p, zoom){
   meMarker = L.circleMarker(ll,{radius:11,color:'#fff',weight:4,
     fillColor:'#E2453C',fillOpacity:1}).addTo(map)
     .bindTooltip('現在地',{permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
-  var sl = document.getElementById('stgLink');
-  if (sl) sl.href =
-    'https://www.river.go.jp/kawabou/mb/tmlist?zm=13&clat='+ll[0]+'&clon='+ll[1]+
-    '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0';
 
   const nearestEl = document.getElementById('nearest');
   const routeLink = document.getElementById('shelterRouteLink');
