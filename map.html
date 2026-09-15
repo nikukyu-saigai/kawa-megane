@@ -160,6 +160,38 @@
 const map = L.map('map', { center:[35.7365,139.5800], zoom:14, zoomControl:false });
 L.control.zoom({position:'bottomleft'}).addTo(map);
 
+/* ===== レイアウト自動調整（iPhone等、ヘッダー文字が折り返す端末対策） =====
+   ヘッダー・フッターの実際の高さを測って、重なりが出ないように
+   情報パネルの位置とmapの余白を動的に決める。               */
+function relayout(){
+  const headerH = document.querySelector('header').offsetHeight;
+  const gap = 8;
+
+  const rtime = document.getElementById('rtime');
+  const mapsrc = document.getElementById('mapsrc');
+  const nearest = document.getElementById('nearest');
+  const legend = document.getElementById('legend');
+  const layers = document.getElementById('layers');
+
+  let y = headerH + gap;
+  rtime.style.top = y + 'px';
+  y += rtime.offsetHeight + gap;
+  mapsrc.style.top = y + 'px';
+  y += mapsrc.offsetHeight + gap;
+  nearest.style.top = y + 'px';
+  y += nearest.offsetHeight + gap;
+  legend.style.top = y + 'px';
+
+  layers.style.top = (headerH + gap) + 'px';
+
+  const footer = document.querySelector('footer');
+  document.documentElement.style.setProperty('--footerH', footer.offsetHeight + 'px');
+}
+window.addEventListener('resize', relayout);
+window.addEventListener('orientationchange', function(){ setTimeout(relayout, 200); });
+setTimeout(relayout, 0);
+setTimeout(relayout, 600); // 雨雲/地図の読み込みでテキストが変わった後にも再調整
+
 const srcEl   = document.getElementById('mapsrc');
 const timeEl  = document.getElementById('rtime');
 const toastEl = document.getElementById('toast');
@@ -190,8 +222,9 @@ function useOSM(reason){
   osm.addTo(map);
   osm.setZIndex(1);
   srcEl.textContent = '地図：OpenStreetMap（' + reason + '）';
+  relayout();
 }
-gsi.on('tileload',  function(){ gsiOk++; if(!baseSwitched) srcEl.textContent = '地図：地理院タイル'; });
+gsi.on('tileload',  function(){ gsiOk++; if(!baseSwitched){ srcEl.textContent = '地図：地理院タイル'; relayout(); } });
 gsi.on('tileerror', function(){ gsiErr++; if(gsiErr>=4 && gsiOk===0) useOSM('地理院タイルが読めないため'); });
 gsi.addTo(map);
 gsi.setZIndex(1);
@@ -237,8 +270,9 @@ function loadRain(){
       rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:18,zIndex:400,className:'rain-tiles'});
       if (wasOn) rain.addTo(map);
       timeEl.textContent = '雨雲 ' + fmtJMATime(now.validtime);
+      relayout();
     })
-    .catch(function(){ timeEl.textContent = '雨雲を取得できませんでした'; });
+    .catch(function(){ timeEl.textContent = '雨雲を取得できませんでした'; relayout(); });
 }
 loadRain();
 setInterval(loadRain, 5*60*1000);
@@ -345,8 +379,10 @@ function showMe(p, zoom){
     const label = r.dist < 1000 ? Math.round(r.dist)+'m' : (r.dist/1000).toFixed(1)+'km';
     nearestEl.innerHTML = '一番近い避難場所　<b>'+r.shelter[0]+'</b><br><span class="d">'+r.shelter[1]+'　約'+label+'</span>';
     routeLink.href = 'https://www.google.com/maps/dir/?api=1&origin='+ll[0]+','+ll[1]+'&destination='+r.shelter[2]+','+r.shelter[3];
+    relayout();
   } else {
     nearestEl.textContent = SHELTERS.length ? '近くに避難所データが見つかりませんでした' : '避難所データを読み込み中です…';
+    relayout();
   }
 }
 
