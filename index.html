@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#101A2F">
 <title>川めがね｜肉球災害対策事務局</title>
-<meta name="description" content="現在地から近くの河川ライブカメラを探せます。地図版と一覧版から選べます。肉球災害対策事務局。">
+<meta name="description" content="現在地から一番近い避難場所へ案内。雨雲・浸水想定・土砂災害・キキクルを地図に重ねて表示。近くの河川ライブカメラも探せます。肉球災害対策事務局。">
 <meta property="og:title" content="川めがね｜肉球災害対策事務局">
-<meta property="og:description" content="現在地から近くの河川ライブカメラを探す。地図版と一覧版。">
+<meta property="og:description" content="現在地から避難場所へ案内。危険度を地図で確認、近くの河川カメラも。">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,6 +44,9 @@ h1 .g{color:var(--gold)}
  align-items:center;justify-content:space-between;gap:10px}
 .pick .k span{color:var(--gold);font-size:13px;font-family:"Noto Sans JP",sans-serif;font-weight:700}
 .pick .d{color:var(--cream-dim);font-size:13px;margin-top:8px;line-height:1.85}
+.pick.sub{padding:12px 14px;margin-top:10px;background:transparent}
+.pick.sub .k{font-size:14px;font-weight:700}
+.pick.sub .d{font-size:11.5px;margin-top:4px;line-height:1.6}
 .sign{display:flex;align-items:flex-end;gap:11px;margin-top:30px}
 .sign img{height:86px;width:auto;flex:none}
 .sign .say{border:1px solid var(--gold-dim);padding:12px 14px;font-size:12.5px;
@@ -73,20 +76,20 @@ footer{padding:22px 0 0;font-size:11.5px;color:rgba(244,239,227,.4);text-align:c
   </div>
 
   <h1>川めがね<br><span class="g">見に行かずに、確かめる</span></h1>
-  <p class="lede">現在地から、近くの河川ライブカメラや危険度を確認できます。使いやすいほうをお選びください。</p>
+  <p class="lede">現在地から、近くの避難場所や危険度、河川ライブカメラを確認できます。目的に合わせてお選びください。</p>
 
   <div class="alertbar">
     避難指示（レベル4）以上が出ているときは、確認より先に避難してください。
   </div>
 
-  <a class="pick main" href="./list.html">
-    <div class="k">一覧版<span>おすすめ</span></div>
-    <div class="d">近い順に並んだカメラを、押すだけでライブ映像へ。都内212地点に対応。全国どこでも、その都道府県のカメラ一覧に飛べます。</div>
+  <a class="pick main" href="./map.html">
+    <div class="k">防災マップ<span>おすすめ</span></div>
+    <div class="d">現在地から一番近い避難場所へ案内。雨雲レーダー・洪水浸水想定区域・土砂災害警戒区域・気象庁キキクルも地図に重ねて表示。今いる場所の危険度を面で把握できます。</div>
   </a>
 
-  <a class="pick" href="./map.html">
-    <div class="k">地図版</div>
-    <div class="d">雨雲レーダー・洪水浸水想定区域・土砂災害警戒区域を地図に重ねて表示。今いる場所の危険度を面で把握できます。</div>
+  <a class="pick sub" href="./list.html">
+    <div class="k">近くの川のカメラを探す</div>
+    <div class="d">近い順に並んだカメラを、押すだけでライブ映像へ。都内212地点に対応。全国どこでも、その都道府県のカメラ一覧に飛べます。</div>
   </a>
 
   <div class="sign">
