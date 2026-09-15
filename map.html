@@ -19,6 +19,7 @@
     --footerH: 200px;
   }
   *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   html,body{height:100%}
   body{font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
        background:var(--navy2);color:var(--cream);overflow:hidden}
@@ -125,10 +126,10 @@
 </div>
 
 <div id="layers">
-  <button class="lyr on" id="btnRain">雨雲<small>いま降っている</small></button>
-  <button class="lyr" id="btnFlood">浸水想定<small>洪水で浸かる</small></button>
-  <button class="lyr" id="btnDoseki">土砂<small>警戒区域</small></button>
-  <button class="lyr on" id="btnShelter">避難所<small>全国115,829件</small></button>
+  <button class="lyr on" id="btnRain">雨雲</button>
+  <button class="lyr" id="btnFlood">浸水想定</button>
+  <button class="lyr" id="btnDoseki">土砂</button>
+  <button class="lyr on" id="btnShelter">避難所</button>
 </div>
 
 <button id="locate" title="現在地へ">◎</button>
