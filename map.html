@@ -181,8 +181,10 @@
    ============================================================ */
 
 /* 地図全体のズーム上限。各レイヤーもこれに合わせる（拡大時に
-   レイヤーだけ消えるのを防ぐため）。                         */
-const MAX_ZOOM = 19;
+   レイヤーだけ消えるのを防ぐため）。
+   18 は元の実質上限と同じ。ここを上げるとハザードやキキクルの
+   タイルが引き伸ばされて薄くなるので、上げないこと。         */
+const MAX_ZOOM = 18;
 
 const map = L.map('map', { center:[35.7365,139.5800], zoom:14, zoomControl:false, maxZoom:MAX_ZOOM });
 L.control.zoom({position:'bottomleft'}).addTo(map);
@@ -267,6 +269,26 @@ const doseki = L.layerGroup([
   hz('05_jisuberikeikaikuiki')
 ]);
 
+/* ===== 気象庁タイルの共通ヘルパー =====
+   気象庁の雨雲ナウキャストとキキクルのタイルは、偶数ズーム
+   （z6・z8・z10）にしか中身が入っていない。奇数ズーム（z7・z9・z11）や
+   z11以上を要求すると、中身が透明な画像が返ってくるため、
+   地図を拡大縮小した拍子に色が消えたように見える。
+   そこで z10・z8・z6 を基準にした3枚を重ね、地図のズームに応じて
+   必ずどれか1枚が描画されるようにする。                      */
+function jmaTileGroup(url, opts){
+  const base = Object.assign({}, opts||{});
+  const mk = function(nativeZ, minZ, maxZ){
+    return L.tileLayer(url, Object.assign({}, base,
+      {minNativeZoom:nativeZ, maxNativeZoom:nativeZ, minZoom:minZ, maxZoom:maxZ}));
+  };
+  return L.layerGroup([
+    mk(10, 9, MAX_ZOOM),  // 拡大時：z10のタイルを引き伸ばして使う
+    mk(8,  7, 8),         // 中間のズーム
+    mk(6,  5, 6)          // 広域（全国を見渡すとき）
+  ]);
+}
+
 /* ===== 雨雲（気象庁ナウキャスト） =====
    気象庁が公開している配信を利用しています。公式APIとして案内
    されたものではないため、形式が変わる可能性があります。      */
@@ -294,7 +316,7 @@ function loadRain(){
                   '/none/'+now.validtime+'/surf/hrpns/{z}/{x}/{y}.png';
       const wasOn = document.getElementById('btnRain').classList.contains('on');
       if (rain) map.removeLayer(rain);
-      rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:MAX_ZOOM,zIndex:400,className:'rain-tiles'});
+      rain = jmaTileGroup(url,{opacity:0.55,zIndex:400,className:'rain-tiles'});
       if (wasOn) rain.addTo(map);
       relayout();
     })
@@ -326,8 +348,7 @@ document.getElementById('btnLayersToggle').addEventListener('click', function(){
    雨雲ナウキャストと同じタイル配信の仕組みを利用。
    URLの組み立て方が公式に案内されたものではないため、
    表示できない場合は静かに失敗し、ボタンだけ残る。
-   タイルは z11 までしか無いので maxNativeZoom:11。
-   maxZoom は地図と同じにして、拡大しても消えないようにする。 */
+   タイルの中身は偶数ズームにしか無いため、描画は jmaTileGroup に任せる。 */
 let kikikuruLand = null, kikikuruInund = null;
 
 function loadKikikuru(){
@@ -343,12 +364,10 @@ function loadKikikuru(){
       if (kikikuruLand) map.removeLayer(kikikuruLand);
       if (kikikuruInund) map.removeLayer(kikikuruInund);
 
-      kikikuruLand = L.tileLayer(base+'land/{z}/{x}/{y}.png',
-        {opacity:0.7, maxNativeZoom:11, maxZoom:MAX_ZOOM, zIndex:350,
-         attribution:'気象庁 キキクル（土砂）'});
-      kikikuruInund = L.tileLayer(base+'inund/{z}/{x}/{y}.png',
-        {opacity:0.7, maxNativeZoom:11, maxZoom:MAX_ZOOM, zIndex:350,
-         attribution:'気象庁 キキクル（浸水）'});
+      kikikuruLand = jmaTileGroup(base+'land/{z}/{x}/{y}.png',
+        {opacity:0.7, zIndex:350, attribution:'気象庁 キキクル（土砂）'});
+      kikikuruInund = jmaTileGroup(base+'inund/{z}/{x}/{y}.png',
+        {opacity:0.7, zIndex:350, attribution:'気象庁 キキクル（浸水）'});
 
       if (wasLandOn) kikikuruLand.addTo(map);
       if (wasInundOn) kikikuruInund.addTo(map);
