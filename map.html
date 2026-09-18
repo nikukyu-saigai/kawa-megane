@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>川めがね｜防災マップ（避難所・危険度をその場で確認）</title>
 <meta name="description" content="現在地から一番近い避難場所へ案内。雨雲・浸水想定・土砂災害・気象庁キキクルを地図に重ねて表示。地図上の河川カメラピンからすぐ映像も見られます。肉球災害対策事務局。">
-<link rel="canonical" href="https://nikukyu-saigai.github.io/kawa-megane/">
+<link rel="canonical" href="https://kawa-megane.com/map.html">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="ja_JP">
 <meta property="og:title" content="川めがね｜防災マップ（避難所・危険度をその場で確認）">
@@ -180,7 +180,11 @@
    ＋ 重ねるハザードマップ（洪水浸水想定・土砂災害警戒区域）
    ============================================================ */
 
-const map = L.map('map', { center:[35.7365,139.5800], zoom:14, zoomControl:false });
+/* 地図全体のズーム上限。各レイヤーもこれに合わせる（拡大時に
+   レイヤーだけ消えるのを防ぐため）。                         */
+const MAX_ZOOM = 19;
+
+const map = L.map('map', { center:[35.7365,139.5800], zoom:14, zoomControl:false, maxZoom:MAX_ZOOM });
 L.control.zoom({position:'bottomleft'}).addTo(map);
 
 /* ===== レイアウト自動調整（iPhone等、ヘッダー文字が折り返す端末対策） =====
@@ -222,11 +226,11 @@ function toast(msg, ms){
 let baseSwitched = false, gsiOk = 0, gsiErr = 0;
 
 const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom:19,
+  maxZoom:MAX_ZOOM,
   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
 });
 const gsi = L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
-  maxZoom:18,
+  maxNativeZoom:18, maxZoom:MAX_ZOOM,
   attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
 });
 
@@ -245,7 +249,7 @@ gsi.setZIndex(1);
 setTimeout(function(){ if(gsiOk===0) useOSM('地理院タイルが読めないため'); }, 6000);
 
 /* ===== ハザードマップ ===== */
-const HZ={opacity:0.62,maxNativeZoom:17,maxZoom:18,zIndex:300,
+const HZ={opacity:0.62,maxNativeZoom:17,maxZoom:MAX_ZOOM,zIndex:300,
   attribution:'<a href="https://disaportal.gsi.go.jp/" target="_blank">ハザードマップポータル</a>'};
 function hz(id){return L.tileLayer(
   'https://disaportaldata.gsi.go.jp/raster/'+id+'/{z}/{x}/{y}.png', HZ);}
@@ -290,7 +294,7 @@ function loadRain(){
                   '/none/'+now.validtime+'/surf/hrpns/{z}/{x}/{y}.png';
       const wasOn = document.getElementById('btnRain').classList.contains('on');
       if (rain) map.removeLayer(rain);
-      rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:18,zIndex:400,className:'rain-tiles'});
+      rain = L.tileLayer(url,{opacity:0.55,maxNativeZoom:10,maxZoom:MAX_ZOOM,zIndex:400,className:'rain-tiles'});
       if (wasOn) rain.addTo(map);
       relayout();
     })
@@ -321,7 +325,9 @@ document.getElementById('btnLayersToggle').addEventListener('click', function(){
 /* ===== キキクル（気象庁 危険度分布・リアルタイム）試験実装 =====
    雨雲ナウキャストと同じタイル配信の仕組みを利用。
    URLの組み立て方が公式に案内されたものではないため、
-   表示できない場合は静かに失敗し、ボタンだけ残る。          */
+   表示できない場合は静かに失敗し、ボタンだけ残る。
+   タイルは z11 までしか無いので maxNativeZoom:11。
+   maxZoom は地図と同じにして、拡大しても消えないようにする。 */
 let kikikuruLand = null, kikikuruInund = null;
 
 function loadKikikuru(){
@@ -338,10 +344,10 @@ function loadKikikuru(){
       if (kikikuruInund) map.removeLayer(kikikuruInund);
 
       kikikuruLand = L.tileLayer(base+'land/{z}/{x}/{y}.png',
-        {opacity:0.7, maxNativeZoom:11, maxZoom:14, zIndex:350,
+        {opacity:0.7, maxNativeZoom:11, maxZoom:MAX_ZOOM, zIndex:350,
          attribution:'気象庁 キキクル（土砂）'});
       kikikuruInund = L.tileLayer(base+'inund/{z}/{x}/{y}.png',
-        {opacity:0.7, maxNativeZoom:11, maxZoom:14, zIndex:350,
+        {opacity:0.7, maxNativeZoom:11, maxZoom:MAX_ZOOM, zIndex:350,
          attribution:'気象庁 キキクル（浸水）'});
 
       if (wasLandOn) kikikuruLand.addTo(map);
@@ -376,6 +382,7 @@ function distMeters(lat1, lng1, lat2, lng2){
   const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
   return R * 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
+/* 距離(km)。避難所・カメラの両方で使う共通関数（定義はここ1か所だけ） */
 function distKm(lat1, lng1, lat2, lng2){ return distMeters(lat1,lng1,lat2,lng2)/1000; }
 
 function findNearestShelter(lat, lng){
@@ -720,11 +727,6 @@ function campUrl(c){
     '&fld=0&mapType=0&viewGrpStg=0&viewRd=1&viewRW=1&viewRl=1&viewRn=1&viewPoint=1&ext=0'+
     '&itmkndCd='+itm+'&scamId='+c[4]+'&ownCd='+c[5]+'&sysCamId='+c[6];
 }
-function distKm(a1,o1,a2,o2){
-  const R=6371,dA=(a2-a1)*Math.PI/180,dO=(o2-o1)*Math.PI/180;
-  const x=Math.sin(dA/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;
-  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
-}
 
 let camMarkers = [];
 const CAM_RADIUS_KM = 15;   // 中心からこの範囲だけ表示
@@ -751,6 +753,10 @@ function redrawCameraPins(){
 
   near.slice(0, CAM_MAX).forEach(function(item){
     const x = item.d;
+    /* YouTubeの動画IDがある地点だけ「ライブ映像」と表示する。
+       IDが無い地点は東京都水防チャンネルの検索結果へ誘導するだけなので、
+       ライブ映像とは名乗らない。                                   */
+    const hasLive = item.live && !!x[4];
     const href = item.live
       ? (x[4] ? 'https://www.youtube.com/watch?v='+x[4]
               : 'https://www.youtube.com/results?search_query='+encodeURIComponent('東京都水防チャンネル '+x[5]))
@@ -758,7 +764,7 @@ function redrawCameraPins(){
     const m = L.circleMarker([x[2], x[3]], {radius:8, color:'#fff', weight:2,
       fillColor: item.live ? '#E2453C' : '#C9A75A', fillOpacity:1}).addTo(map);
     m.bindPopup('<b>'+x[0]+'</b><br>'+x[1]
-      + (item.live ? '<br><span style="color:#9FB0C8;font-size:11px">ライブ映像</span>' : '')
+      + (hasLive ? '<br><span style="color:#9FB0C8;font-size:11px">ライブ映像</span>' : '')
       + '<br><a href="'+href+'" target="_blank" rel="noopener">映像を開く</a>');
     camMarkers.push(m);
   });
