@@ -245,14 +245,23 @@ gsi.setZIndex(1);
 setTimeout(function(){ if(gsiOk===0) useOSM('地理院タイルが読めないため'); }, 6000);
 
 /* ===== ハザードマップ ===== */
-const flood = L.tileLayer(
-  'https://disaportaldata.gsi.go.jp/raster/01_flood_l2_shinsuishin_data/{z}/{x}/{y}.png',
-  { opacity:0.62, maxNativeZoom:17, maxZoom:18, zIndex:300,
-    attribution:'<a href="https://disaportal.gsi.go.jp/" target="_blank">ハザードマップポータル</a>' });
+const HZ={opacity:0.62,maxNativeZoom:17,maxZoom:18,zIndex:300,
+  attribution:'<a href="https://disaportal.gsi.go.jp/" target="_blank">ハザードマップポータル</a>'};
+function hz(id){return L.tileLayer(
+  'https://disaportaldata.gsi.go.jp/raster/'+id+'/{z}/{x}/{y}.png', HZ);}
 
-const doseki = L.tileLayer(
-  'https://disaportaldata.gsi.go.jp/raster/05_dosekiryukeikaikuiki/{z}/{x}/{y}.png',
-  { opacity:0.62, maxNativeZoom:17, maxZoom:18, zIndex:300 });
+/* 洪水浸水想定区域（想定最大規模）国管理＋都道府県管理 */
+const flood = L.layerGroup([
+  hz('01_flood_l2_shinsuishin_kuni_data'),
+  hz('01_flood_l2_shinsuishin_data')
+]);
+
+/* 土砂災害警戒区域（土石流・急傾斜地・地すべり） */
+const doseki = L.layerGroup([
+  hz('05_dosekiryukeikaikuiki'),
+  hz('05_kyukeishakeikaikuiki'),
+  hz('05_jisuberikeikaikuiki')
+]);
 
 /* ===== 雨雲（気象庁ナウキャスト） =====
    気象庁が公開している配信を利用しています。公式APIとして案内
