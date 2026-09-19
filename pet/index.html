@@ -131,7 +131,7 @@
   <div class="r"><i style="background:var(--ok)"></i>受け入れ○（行政に確認済み）</div>
   <div class="r"><i style="background:var(--warn)"></i>受け入れ○（未確認の情報）</div>
   <div class="r"><i style="background:var(--no)"></i>受け入れ✕</div>
-  <div class="r"><i style="background:var(--unknown)"></i>可否は不明（調べた人がいます）</div>
+  <div class="r"><i style="background:var(--unknown)"></i>方針が未定（自治体に確認済み）</div>
   <div class="r"><i style="background:var(--none)"></i>情報なし（誰も調べていません）</div>
 </div>
 
@@ -242,13 +242,13 @@ function statusOf(s){
   if (!p) return 'none';
   if (p.ok === 'no') return 'no';
   if (p.ok === 'yes') return p.confirmed ? 'ok' : 'warn';
-  return 'unknown';   // 情報は届いているが、受け入れ可否は不明
+  return 'unknown';   // 自治体がまだ方針を決めていない
 }
 const COLOR = {ok:'#39B36B', warn:'#E8B24F', no:'#E2453C', unknown:'#3F86D6', none:'#9AA3B2'};
 const LABEL = {ok:'ペットと避難できます（行政に確認済み）',
                warn:'ペットと避難できます（未確認の情報）',
                no:'ペットと一緒には避難できません',
-               unknown:'調べた方がいますが、可否は分かっていません',
+               unknown:'自治体がまだ方針を決めていません',
                none:'ペットを受け入れるか分かっていません'};
 
 /* ===== 描画（中心から近いものだけ） ===== */
@@ -321,7 +321,7 @@ function popupHtml(s, st){
        + '</div>';
   } else {
     h += '<div class="pv-meta">この避難所のペット受け入れは分かっていません。'
-       + 'ご存じでしたら教えてください。</div>';
+       + '自治体に確認した方は、ぜひ教えてください。</div>';
   }
   h += '<a class="pv-btn" href="' + prefillUrl(s) + '" target="_blank" rel="noopener">'
      + (p ? '情報を追加・訂正する' : 'この避難所の情報を送る') + '</a>';
