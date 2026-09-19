@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>肉球めがね｜みんなでつくるペットの為の防災Map</title>
+<meta name="description" content="みんなでつくるペットの為の防災Map「肉球めがね」。ペットと一緒に避難できる避難所を探せる地図です。全国の指定緊急避難場所に、利用者のみなさんで情報を足していきます。肉球災害対策事務局。">
+<link rel="canonical" href="https://kawa-megane.com/pet/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:url" content="https://kawa-megane.com/pet/">
+<meta property="og:title" content="肉球めがね｜みんなでつくるペットの為の防災Map">
+<meta property="og:description" content="ペットと避難できる避難所を探せる地図。情報はみんなで足していきます。">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --navy:#16233F; --navy2:#0F1929; --gold:#C9A75A; --cream:#F6F1E5;
+    --ok:#39B36B; --warn:#E8B24F; --no:#E2453C; --none:#8A93A6;
+    --pad: env(safe-area-inset-bottom, 0px);
+    --footerH: 96px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  html,body{height:100%}
+  body{font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+       background:var(--navy2);color:var(--cream);overflow:hidden}
+  #map{position:absolute;inset:0}
+
+  header{position:absolute;top:0;left:0;right:0;z-index:1000;
+    background:linear-gradient(180deg,rgba(15,25,41,.95),rgba(15,25,41,.82) 72%,transparent);
+    padding:10px 14px 20px}
+  .tag{font-size:11px;letter-spacing:.06em;color:var(--gold);line-height:1.3;margin-bottom:2px}
+  .ttl{display:flex;align-items:center;gap:10px}
+  .ttl b{font-size:20px;letter-spacing:.04em;white-space:nowrap}
+  .backLink{margin-left:auto;font-size:12px;color:var(--cream);text-decoration:none;
+    border:1px solid rgba(201,167,90,.4);padding:4px 9px;border-radius:999px;white-space:nowrap;flex:none}
+  .warn{margin-top:7px;font-size:11.5px;line-height:1.5;color:#FFE1C9}
+  .warn b{color:#FFB37A}
+
+  #panel{position:absolute;z-index:1000;left:10px;right:10px;top:132px;
+    background:rgba(15,25,41,.95);border:1px solid rgba(201,167,90,.45);border-radius:12px;
+    padding:10px;display:none}
+  #panel.open{display:block}
+  #panel .row{display:flex;gap:6px;margin-bottom:7px}
+  #panel select{flex:1;min-width:0;appearance:none;background:#1C2A46;color:var(--cream);
+    border:1px solid rgba(201,167,90,.45);border-radius:8px;padding:9px 8px;font-size:13px}
+  #panel select:disabled{opacity:.45}
+  #panel .hint{font-size:10.5px;color:#9FB0C8;line-height:1.5}
+
+  #tools{position:absolute;z-index:1000;right:10px;top:132px;display:flex;flex-direction:column;gap:6px}
+  .tbtn{appearance:none;border:1.5px solid rgba(201,167,90,.55);background:rgba(15,25,41,.9);
+    color:var(--cream);font-size:11.5px;padding:7px 9px;border-radius:9px;cursor:pointer;white-space:nowrap}
+  .tbtn.on{background:var(--gold);color:#1B2A4A;border-color:var(--gold);font-weight:700}
+
+  #legend{position:absolute;z-index:1000;left:10px;bottom:calc(var(--footerH) + var(--pad) + 8px);
+    background:rgba(15,25,41,.9);border:1px solid rgba(201,167,90,.3);border-radius:9px;
+    padding:7px 10px;font-size:10.5px;color:#CBD6E6;max-width:calc(100vw - 96px)}
+  #legend .r{display:flex;align-items:center;gap:6px;margin:3px 0}
+  #legend i{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid #fff;flex:none}
+
+  #locate{position:absolute;z-index:1000;right:10px;bottom:calc(var(--footerH) + var(--pad) + 8px);
+    width:50px;height:50px;border-radius:50%;border:1.5px solid rgba(201,167,90,.55);
+    background:rgba(15,25,41,.9);color:var(--cream);font-size:21px;cursor:pointer}
+
+  footer{position:absolute;left:0;right:0;bottom:0;z-index:1000;
+    background:linear-gradient(0deg,rgba(15,25,41,.97),rgba(15,25,41,.88) 60%,transparent);
+    padding:14px 12px calc(10px + var(--pad))}
+  .count{text-align:center;font-size:12.5px;color:#CBD6E6;margin-bottom:7px}
+  .count b{color:var(--gold);font-size:17px;font-variant-numeric:tabular-nums}
+  .note{max-width:620px;margin:0 auto;font-size:9.5px;line-height:1.45;color:#8FA0B8;text-align:center}
+  .note a{color:#B9C7DA}
+
+  #toast{position:absolute;z-index:1200;left:50%;transform:translateX(-50%);
+    bottom:calc(var(--footerH) + 56px);background:rgba(15,25,41,.96);
+    border:1px solid rgba(201,167,90,.5);color:#F6F1E5;font-size:12px;line-height:1.5;
+    padding:9px 14px;border-radius:10px;max-width:86vw;text-align:center;
+    opacity:0;pointer-events:none;transition:opacity .25s}
+  #toast.show{opacity:1}
+
+  .leaflet-popup-content-wrapper{background:#16233F;color:#F6F1E5;border-radius:12px}
+  .leaflet-popup-tip{background:#16233F}
+  .leaflet-popup-content{margin:12px 14px;font-size:13px;line-height:1.6;min-width:210px}
+  .pv-name{font-weight:700;font-size:14px}
+  .pv-addr{color:#9FB0C8;font-size:11.5px;margin-top:2px}
+  .pv-badge{display:inline-block;margin-top:8px;font-size:11px;font-weight:700;
+    padding:3px 9px;border-radius:999px}
+  .pv-tbl{width:100%;margin-top:8px;border-collapse:collapse;font-size:12px}
+  .pv-tbl td{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+  .pv-tbl td:last-child{text-align:right;color:#CBD6E6}
+  .pv-meta{margin-top:7px;font-size:10.5px;color:#9FB0C8;line-height:1.5}
+  .pv-btn{display:block;text-align:center;margin-top:10px;background:#C9A75A;color:#1B2A4A;
+    text-decoration:none;font-weight:700;padding:8px 12px;border-radius:8px;font-size:12.5px}
+  .pv-ask{display:block;text-align:center;margin-top:6px;border:1px solid rgba(201,167,90,.5);
+    color:#F6F1E5;text-decoration:none;padding:7px 12px;border-radius:8px;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<header>
+  <div class="tag">みんなでつくるペットの為の防災Map</div>
+  <div class="ttl"><b>肉球めがね</b>
+    <a href="https://kawa-megane.com/" class="backLink">川めがね →</a></div>
+  <div class="warn"><b>行政の公式情報ではありません。</b>有志から集めた情報です。避難の前に必ず市区町村にご確認ください。</div>
+</header>
+
+<div id="tools">
+  <button class="tbtn" id="btnSearch">避難所を探す</button>
+  <button class="tbtn on" id="btnOnlyInfo">情報あり</button>
+</div>
+
+<div id="panel">
+  <div class="row">
+    <select id="selPref"><option value="">都道府県</option></select>
+    <select id="selCity" disabled><option value="">市区町村</option></select>
+  </div>
+  <div class="row">
+    <select id="selPlace" disabled><option value="">施設名</option></select>
+  </div>
+  <div class="hint">施設を選ぶと地図が移動します。情報がなければ、その場で送れます。</div>
+</div>
+
+<div id="legend">
+  <div class="r"><i style="background:var(--ok)"></i>受け入れ○（行政に確認済み）</div>
+  <div class="r"><i style="background:var(--warn)"></i>受け入れ○（未確認の情報）</div>
+  <div class="r"><i style="background:var(--no)"></i>受け入れ✕</div>
+  <div class="r"><i style="background:var(--none)"></i>情報なし（分かっていません）</div>
+</div>
+
+<button id="locate" title="現在地へ">◎</button>
+<div id="toast"></div>
+
+<footer>
+  <div class="count">ペット情報が集まった避難所　<b id="cnt">0</b> か所　<span style="color:#7E8CA3">／ 全国 115,829 か所</span></div>
+  <div class="note">
+    避難所データ出典：<a href="https://hinanmap.gsi.go.jp/" target="_blank" rel="noopener">国土地理院 指定緊急避難場所データ</a>／
+    地図：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>／
+    ペット情報：利用者のみなさんからの提供（非公式）<br>
+    運営：肉球災害対策事務局
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ============================================================
+   肉球めがね — 肉球災害対策事務局
+   ペットと避難できる避難所マップ（有志による非公式データ）
+   ============================================================ */
+
+/* ▼▼ ここだけ差し替えてください ▼▼
+   Apps Script の実行ログに出た「プリフィル雛形」をそのまま貼る。
+   {PREF} {CITY} {NAME} {ADDR} {GEO} はこのまま残すこと。       */
+const FORM_PREFILL = "https://docs.google.com/forms/d/e/1FAIpQLSebAtWgeWpPxniIHZqn6znb_GkfU9y1r3WdZkY21ZLzlc6RyQ/viewform?usp=pp_url&entry.113932862={PREF}&entry.987233083={CITY}&entry.4946673={NAME}&entry.1623037486={ADDR}&entry.1920939661={GEO}";
+/* ▲▲ ここまで ▲▲ */
+
+const MAX_ZOOM = 18;
+const map = L.map('map', { center:[35.6812,139.7671], zoom:13, zoomControl:false, maxZoom:MAX_ZOOM });
+L.control.zoom({position:'bottomright'}).addTo(map);
+
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png', {
+  maxNativeZoom:18, maxZoom:MAX_ZOOM,
+  attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">地理院タイル</a>'
+}).addTo(map);
+
+const toastEl = document.getElementById('toast');
+function toast(msg, ms){
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(toastEl._t);
+  toastEl._t = setTimeout(()=>toastEl.classList.remove('show'), ms||3500);
+}
+
+/* ===== 住所から都道府県・市区町村を切り出す =====
+   実データ115,829件で検証済み。切り出せるのは115,816件（99.99%）。
+   郡部（○○郡△△町）と政令市の区（横浜市西区）に対応する。      */
+const ADDR_RE = /^(北海道|東京都|京都府|大阪府|.{2,3}県)(.*?郡.*?[町村]|.*?市.*?区|.*?[市区町村])/;
+function splitAddr(a){
+  const m = String(a||'').match(ADDR_RE);
+  return m ? {pref:m[1], city:m[2]} : {pref:'', city:''};
+}
+
+/* ===== データ ===== */
+let SHELTERS = [];      // [名称, 住所, 緯度, 経度]
+let PETS = {};          // "lat,lon" -> 情報
+let INDEX = {};         // 都道府県 -> 市区町村 -> [index...]
+let onlyInfo = true;    // 情報ありだけ表示するか
+
+const keyOf = s => s[2].toFixed(6) + ',' + s[3].toFixed(6);
+
+Promise.all([
+  fetch('../shelters.json', {cache:'force-cache'}).then(r => r.ok ? r.json() : Promise.reject('shelters')),
+  fetch('./pets.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(()=>({}))
+]).then(([sh, pets]) => {
+  SHELTERS = sh; PETS = pets || {};
+  buildIndex();
+  document.getElementById('cnt').textContent = Object.keys(PETS).length.toLocaleString();
+  redraw();
+  locateQuiet();
+}).catch(() => {
+  toast('避難所データを読み込めませんでした。時間をおいて開き直してください。', 8000);
+});
+
+function buildIndex(){
+  const prefSel = document.getElementById('selPref');
+  SHELTERS.forEach((s,i) => {
+    const {pref, city} = splitAddr(s[1]);
+    const p = pref || 'その他', c = city || 'その他';
+    (INDEX[p] = INDEX[p] || {});
+    (INDEX[p][c] = INDEX[p][c] || []).push(i);
+  });
+  Object.keys(INDEX).sort().forEach(p => {
+    const o = document.createElement('option'); o.value = p; o.textContent = p;
+    prefSel.appendChild(o);
+  });
+}
+
+/* ===== ピンの色分け ===== */
+function statusOf(s){
+  const p = PETS[keyOf(s)];
+  if (!p) return 'none';
+  if (p.ok === 'no') return 'no';
+  if (p.ok === 'yes') return p.confirmed ? 'ok' : 'warn';
+  return 'none';
+}
+const COLOR = {ok:'#39B36B', warn:'#E8B24F', no:'#E2453C', none:'#8A93A6'};
+const LABEL = {ok:'ペットと避難できます（行政に確認済み）',
+               warn:'ペットと避難できます（未確認の情報）',
+               no:'ペットと一緒には避難できません',
+               none:'ペットを受け入れるか分かっていません'};
+
+/* ===== 描画（中心から近いものだけ） ===== */
+const RADIUS_KM = 10, MAX_PINS = 300;
+let markers = [];
+function distKm(a1,o1,a2,o2){
+  const R=6371, dA=(a2-a1)*Math.PI/180, dO=(o2-o1)*Math.PI/180;
+  const x=Math.sin(dA/2)**2+Math.cos(a1*Math.PI/180)*Math.cos(a2*Math.PI/180)*Math.sin(dO/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+function redraw(){
+  markers.forEach(m => map.removeLayer(m)); markers = [];
+  if (!SHELTERS.length) return;
+  const c = map.getCenter();
+  const near = [];
+  for (let i=0;i<SHELTERS.length;i++){
+    const s = SHELTERS[i];
+    const km = distKm(c.lat, c.lng, s[2], s[3]);
+    if (km > RADIUS_KM) continue;
+    const st = statusOf(s);
+    if (onlyInfo && st === 'none') continue;
+    near.push({s, km, st});
+  }
+  near.sort((a,b) => a.km - b.km);
+  near.slice(0, MAX_PINS).forEach(item => {
+    const m = L.circleMarker([item.s[2], item.s[3]], {
+      radius: item.st === 'none' ? 6 : 8, color:'#fff', weight:2,
+      fillColor: COLOR[item.st], fillOpacity: item.st === 'none' ? .75 : 1
+    }).addTo(map);
+    m.bindPopup(() => popupHtml(item.s, item.st), {maxWidth:280});
+    markers.push(m);
+  });
+  if (onlyInfo && near.length === 0) {
+    toast('この範囲にはまだ情報がありません。「情報あり」を押すと全避難所を表示できます。', 5000);
+  }
+}
+map.on('moveend', redraw);
+
+/* ===== ポップアップ ===== */
+function esc(t){ return String(t==null?'':t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function prefillUrl(s){
+  const {pref, city} = splitAddr(s[1]);
+  return FORM_PREFILL
+    .replace('{PREF}', encodeURIComponent(pref))
+    .replace('{CITY}', encodeURIComponent(city))
+    .replace('{NAME}', encodeURIComponent(s[0]))
+    .replace('{ADDR}', encodeURIComponent(s[1]))
+    .replace('{GEO}',  encodeURIComponent(keyOf(s)));
+}
+function popupHtml(s, st){
+  const p = PETS[keyOf(s)];
+  let h = '<div class="pv-name">' + esc(s[0]) + '</div>'
+        + '<div class="pv-addr">' + esc(s[1]) + '</div>'
+        + '<span class="pv-badge" style="background:' + COLOR[st] + ';color:'
+        + (st==='warn' ? '#3A2A06' : '#fff') + '">' + LABEL[st] + '</span>';
+  if (p) {
+    const rows = [['受け入れ場所',p.place],['犬',p.dog],['猫',p.cat],['小動物・鳥',p.small],
+                  ['ケージ持参',p.cage],['世話',p.care],['事前登録',p.reg]]
+                 .filter(r => r[1]);
+    if (rows.length) {
+      h += '<table class="pv-tbl">'
+         + rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td></tr>').join('')
+         + '</table>';
+    }
+    h += '<div class="pv-meta">'
+       + (p.confirmed ? '行政に確認済み' : '行政未確認の情報です')
+       + (p.date ? '　/　' + esc(p.date) + '時点' : '')
+       + (p.src ? '<br>出どころ：' + esc(p.src) : '')
+       + (p.note ? '<br>' + esc(p.note) : '')
+       + '</div>';
+  } else {
+    h += '<div class="pv-meta">この避難所のペット受け入れは分かっていません。'
+       + 'ご存じでしたら教えてください。</div>';
+  }
+  h += '<a class="pv-btn" href="' + prefillUrl(s) + '" target="_blank" rel="noopener">'
+     + (p ? '情報を追加・訂正する' : 'この避難所の情報を送る') + '</a>';
+  h += '<a class="pv-ask" href="https://www.google.com/search?q='
+     + encodeURIComponent(splitAddr(s[1]).city + ' 避難所 ペット 同行避難')
+     + '" target="_blank" rel="noopener">自治体の公式情報を調べる</a>';
+  return h;
+}
+
+/* ===== 検索パネル ===== */
+const selPref = document.getElementById('selPref');
+const selCity = document.getElementById('selCity');
+const selPlace = document.getElementById('selPlace');
+
+document.getElementById('btnSearch').addEventListener('click', e => {
+  const open = document.getElementById('panel').classList.toggle('open');
+  e.target.classList.toggle('on', open);
+});
+document.getElementById('btnOnlyInfo').addEventListener('click', e => {
+  onlyInfo = e.target.classList.toggle('on');
+  redraw();
+});
+
+function fill(sel, items, placeholder){
+  sel.innerHTML = '<option value="">' + placeholder + '</option>';
+  items.forEach(([v, label]) => {
+    const o = document.createElement('option'); o.value = v; o.textContent = label;
+    sel.appendChild(o);
+  });
+  sel.disabled = items.length === 0;
+}
+selPref.addEventListener('change', () => {
+  const p = selPref.value;
+  fill(selPlace, [], '施設名');
+  if (!p) { fill(selCity, [], '市区町村'); return; }
+  const cities = Object.keys(INDEX[p]).sort()
+    .map(c => [c, c + '（' + INDEX[p][c].length + '）']);
+  fill(selCity, cities, '市区町村');
+});
+selCity.addEventListener('change', () => {
+  const p = selPref.value, c = selCity.value;
+  if (!p || !c) { fill(selPlace, [], '施設名'); return; }
+  const list = INDEX[p][c]
+    .map(i => [String(i), SHELTERS[i][0] + (PETS[keyOf(SHELTERS[i])] ? '  ●' : '')])
+    .sort((a,b) => a[1].localeCompare(b[1], 'ja'));
+  fill(selPlace, list, '施設名（' + list.length + '件）');
+});
+selPlace.addEventListener('change', () => {
+  const i = parseInt(selPlace.value, 10);
+  if (isNaN(i)) return;
+  const s = SHELTERS[i];
+  onlyInfo = false;
+  document.getElementById('btnOnlyInfo').classList.remove('on');
+  map.setView([s[2], s[3]], 17);
+  setTimeout(() => {
+    const m = markers.find(mk => {
+      const ll = mk.getLatLng();
+      return Math.abs(ll.lat - s[2]) < 1e-9 && Math.abs(ll.lng - s[3]) < 1e-9;
+    });
+    if (m) m.openPopup();
+  }, 400);
+});
+
+/* ===== 現在地 ===== */
+let meMarker = null;
+function showMe(pos, z){
+  const ll = [pos.coords.latitude, pos.coords.longitude];
+  map.setView(ll, z);
+  if (meMarker) map.removeLayer(meMarker);
+  meMarker = L.circleMarker(ll, {radius:10, color:'#fff', weight:4,
+    fillColor:'#E2453C', fillOpacity:1}).addTo(map).bindTooltip('現在地');
+}
+function locateQuiet(){
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p => showMe(p, 14), () => {},
+    {enableHighAccuracy:false, timeout:15000, maximumAge:300000});
+}
+document.getElementById('locate').addEventListener('click', () => {
+  if (!navigator.geolocation) { toast('この端末では現在地を取得できません'); return; }
+  toast('現在地を探しています…', 15000);
+  navigator.geolocation.getCurrentPosition(
+    p => { showMe(p, 15); toast('現在地を表示しました', 2000); },
+    () => toast('現在地を取得できませんでした。地図を動かして探してください。', 6000),
+    {enableHighAccuracy:true, timeout:20000, maximumAge:0});
+});
+
+/* ヘッダーの高さに合わせてパネル位置を調整 */
+function relayout(){
+  const h = document.querySelector('header').offsetHeight + 8;
+  document.getElementById('panel').style.top = h + 'px';
+  document.getElementById('tools').style.top = h + 'px';
+  document.documentElement.style.setProperty('--footerH',
+    document.querySelector('footer').offsetHeight + 'px');
+}
+window.addEventListener('resize', relayout);
+setTimeout(relayout, 0); setTimeout(relayout, 500);
+</script>
+</body>
+</html>
