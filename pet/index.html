@@ -16,7 +16,7 @@
 <style>
   :root{
     --navy:#16233F; --navy2:#0F1929; --gold:#C9A75A; --cream:#F6F1E5;
-    --ok:#39B36B; --warn:#E8B24F; --no:#E2453C; --none:#8A93A6;
+    --ok:#39B36B; --warn:#E8B24F; --no:#E2453C; --unknown:#3F86D6; --none:#9AA3B2;
     --pad: env(safe-area-inset-bottom, 0px);
     --footerH: 96px;
   }
@@ -131,7 +131,8 @@
   <div class="r"><i style="background:var(--ok)"></i>受け入れ○（行政に確認済み）</div>
   <div class="r"><i style="background:var(--warn)"></i>受け入れ○（未確認の情報）</div>
   <div class="r"><i style="background:var(--no)"></i>受け入れ✕</div>
-  <div class="r"><i style="background:var(--none)"></i>情報なし（分かっていません）</div>
+  <div class="r"><i style="background:var(--unknown)"></i>可否は不明（調べた人がいます）</div>
+  <div class="r"><i style="background:var(--none)"></i>情報なし（誰も調べていません）</div>
 </div>
 
 <button id="locate" title="現在地へ">◎</button>
@@ -241,12 +242,13 @@ function statusOf(s){
   if (!p) return 'none';
   if (p.ok === 'no') return 'no';
   if (p.ok === 'yes') return p.confirmed ? 'ok' : 'warn';
-  return 'none';
+  return 'unknown';   // 情報は届いているが、受け入れ可否は不明
 }
-const COLOR = {ok:'#39B36B', warn:'#E8B24F', no:'#E2453C', none:'#8A93A6'};
+const COLOR = {ok:'#39B36B', warn:'#E8B24F', no:'#E2453C', unknown:'#3F86D6', none:'#9AA3B2'};
 const LABEL = {ok:'ペットと避難できます（行政に確認済み）',
                warn:'ペットと避難できます（未確認の情報）',
                no:'ペットと一緒には避難できません',
+               unknown:'調べた方がいますが、可否は分かっていません',
                none:'ペットを受け入れるか分かっていません'};
 
 /* ===== 描画（中心から近いものだけ） ===== */
@@ -301,7 +303,7 @@ function popupHtml(s, st){
   let h = '<div class="pv-name">' + esc(s[0]) + '</div>'
         + '<div class="pv-addr">' + esc(s[1]) + '</div>'
         + '<span class="pv-badge" style="background:' + COLOR[st] + ';color:'
-        + (st==='warn' ? '#3A2A06' : '#fff') + '">' + LABEL[st] + '</span>';
+        + (st === 'warn' ? '#3A2A06' : '#fff') + '">' + LABEL[st] + '</span>';
   if (p) {
     const rows = [['受け入れ場所',p.place],['犬',p.dog],['猫',p.cat],['小動物・鳥',p.small],
                   ['ケージ持参',p.cage],['世話',p.care],['事前登録',p.reg]]
@@ -313,7 +315,7 @@ function popupHtml(s, st){
     }
     h += '<div class="pv-meta">'
        + (p.confirmed ? '行政に確認済み' : '行政未確認の情報です')
-       + (p.date ? '　/　' + esc(p.date) + '時点' : '')
+       + (p.date ? '　/　情報の新しさ：' + esc(p.date) : '')
        + (p.src ? '<br>出どころ：' + esc(p.src) : '')
        + (p.note ? '<br>' + esc(p.note) : '')
        + '</div>';
