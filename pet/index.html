@@ -207,9 +207,21 @@ let onlyInfo = true;    // 情報ありだけ表示するか
 
 const keyOf = s => s[2].toFixed(6) + ',' + s[3].toFixed(6);
 
+/* ペット情報：フォーム回答を自動配信（Apps Script）→ 読めない時は pets.json */
+const PETS_API = 'https://script.google.com/macros/s/AKfycbxC97oYHXJ0Y09csMGCJMBc2J04Vq9muSqbEputDSXeBS6CdN4BJDCGMYnT7Gfc05dE8g/exec';
+function loadPets(){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 10000);
+  const api = fetch(PETS_API, {cache:'no-store', signal:ctl.signal})
+    .then(r => r.ok ? r.json() : Promise.reject('api'))
+    .then(j => { clearTimeout(timer); if (j && typeof j === 'object' && !Array.isArray(j)) return j; throw 'api'; });
+  return api.catch(() => fetch('./pets.json', {cache:'no-store'})
+    .then(r => r.ok ? r.json() : {}).catch(() => ({})));
+}
+
 Promise.all([
   fetch('../shelters.json', {cache:'force-cache'}).then(r => r.ok ? r.json() : Promise.reject('shelters')),
-  fetch('./pets.json', {cache:'no-store'}).then(r => r.ok ? r.json() : {}).catch(()=>({}))
+  loadPets()
 ]).then(([sh, pets]) => {
   SHELTERS = sh; PETS = pets || {};
   buildIndex();
