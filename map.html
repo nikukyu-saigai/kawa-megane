@@ -80,6 +80,19 @@
     width:52px;height:52px;border-radius:50%;border:1.5px solid rgba(201,167,90,.55);
     background:rgba(15,25,41,.9);color:var(--cream);font-size:22px;cursor:pointer}
 
+  #appbar{position:absolute;z-index:1300;left:8px;right:8px;
+    bottom:calc(var(--footerH) + var(--pad) + 62px);
+    background:rgba(15,25,41,.97);border:1.5px solid var(--gold);border-radius:10px;
+    padding:9px 10px;color:#F6F1E5;font-size:11.5px;line-height:1.5;display:none;
+    box-shadow:0 8px 24px rgba(0,0,0,.45)}
+  #appbar.show{display:flex;gap:8px;align-items:center}
+  #appbar .ab{margin-left:auto;display:flex;gap:4px;align-items:center;flex:none}
+  #appbarBtn{appearance:none;border:0;background:var(--gold);color:#1B2A4A;font-weight:700;
+    font-size:11.5px;padding:8px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  #appbarBtn.hide{display:none}
+  #appbarClose{appearance:none;border:0;background:none;color:#9FB0C8;font-size:15px;
+    cursor:pointer;padding:2px 4px;line-height:1}
+
   #toast{position:absolute;z-index:1200;left:50%;transform:translateX(-50%);
     bottom:calc(var(--footerH) + 8px + var(--pad));background:rgba(15,25,41,.96);
     border:1px solid rgba(201,167,90,.5);color:#F6F1E5;font-size:12px;line-height:1.5;
@@ -160,6 +173,14 @@
 </div>
 
 <button id="locate" title="現在地へ">◎</button>
+<div id="appbar">
+  <div id="appbarMsg"></div>
+  <div class="ab">
+    <button id="appbarBtn" type="button">ブラウザで開く</button>
+    <button id="appbarClose" type="button" aria-label="閉じる">✕</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <footer>
@@ -453,11 +474,14 @@ function showMe(p, zoom){
   map.setView(ll, zoom);
   if (meMarker) map.removeLayer(meMarker);
   if (meCircle) map.removeLayer(meCircle);
-  meCircle = L.circle(ll,{radius:Math.min(p.coords.accuracy||120,400),
+  const acc = p.coords.accuracy || 120;
+  meCircle = L.circle(ll,{radius:acc,
     color:'#E2453C',weight:1.5,fillColor:'#E2453C',fillOpacity:.10}).addTo(map);
   meMarker = L.circleMarker(ll,{radius:11,color:'#fff',weight:4,
     fillColor:'#E2453C',fillOpacity:1}).addTo(map)
-    .bindTooltip('現在地',{permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
+    .bindTooltip('現在地' + (acc > 100 ? '（誤差 約' + Math.round(acc) + 'm）' : ''),
+      {permanent:true,direction:'top',offset:[0,-12],className:'me-tip'});
+  if (window.geoAccuracy) geoAccuracy(acc);
 
   const nearestEl = document.getElementById('nearest');
   const routeLink = document.getElementById('shelterRouteLink');
@@ -492,8 +516,8 @@ function locateQuiet(){
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(
     function(p){ showMe(p,15); },
-    function(){},
-    {enableHighAccuracy:false, timeout:15000, maximumAge:300000}
+    function(e){ if (window.geoFail) geoFail(e); },
+    {enableHighAccuracy:false, timeout:15000, maximumAge:60000}
   );
 }
 
@@ -505,7 +529,7 @@ function locateByUser(){
     function(){
       navigator.geolocation.getCurrentPosition(
         function(p){ showMe(p,15); toast('現在地を表示しました（おおよその位置）', 3000); },
-        function(e){ toast(geoMessage(e), 7000); },
+        function(e){ toast(geoMessage(e), 7000); if (window.geoFail) geoFail(e); },
         {enableHighAccuracy:false, timeout:15000, maximumAge:600000}
       );
     },
@@ -513,6 +537,81 @@ function locateByUser(){
   );
 }
 document.getElementById('locate').addEventListener('click', locateByUser);
+
+/* ===== アプリ内ブラウザ対策・現在地の精度案内 =====
+   X などのアプリ内ブラウザでは位置情報が取れない／ずれることがあるため、
+   外部ブラウザ（Safari・Chrome）へ移るボタンを出す。 */
+(function(){
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua);
+  var isAndroid = /Android/.test(ua);
+  var inApp = /Twitter|FBAN|FBAV|FB_IAB|Instagram|Line\/|MicroMessenger/i.test(ua)
+           || (isAndroid && /;\s?wv\)/.test(ua))
+           || (isIOS && /AppleWebKit/.test(ua) && !/Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua));
+  var bar = document.getElementById('appbar');
+  var msgEl = document.getElementById('appbarMsg');
+  var btn = document.getElementById('appbarBtn');
+  var closeBtn = document.getElementById('appbarClose');
+  var dismissed = false;
+
+  function show(text, hideBtn){
+    if (dismissed || !bar) return;
+    msgEl.textContent = text;
+    btn.classList.toggle('hide', !!hideBtn);
+    bar.classList.add('show');
+  }
+  closeBtn.addEventListener('click', function(){ dismissed = true; bar.classList.remove('show'); });
+
+  function copyUrl(){
+    var u = location.href.split('#')[0];
+    try { if (navigator.clipboard) { navigator.clipboard.writeText(u); return true; } } catch(e){}
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = u; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      return true;
+    } catch(e){ return false; }
+  }
+
+  btn.addEventListener('click', function(){
+    var target = location.host + location.pathname + location.search;
+    if (isAndroid) {
+      location.href = 'intent://' + target + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+    } else if (isIOS) {
+      location.href = 'x-safari-https://' + target;
+    } else {
+      window.open(location.href, '_blank', 'noopener');
+    }
+    setTimeout(function(){
+      if (document.hidden) return;   // 切り替わったので何もしない
+      var ok = copyUrl();
+      show(ok ? 'うまく切り替わりませんでした。URLをコピーしたので、SafariやChromeに貼り付けて開いてください。'
+              : '右上の「…」から「ブラウザで開く」を選んでください。', true);
+    }, 1500);
+  });
+
+  window.geoFail = function(e){
+    if (inApp) {
+      show('この画面（アプリ内ブラウザ）では現在地を取得できません。ブラウザで開くと使えます。');
+    } else if (e && e.code === 1) {
+      show('位置情報が許可されていません。ブラウザの設定で、このサイトに位置情報を許可してください。', true);
+    } else {
+      show('現在地を取得できませんでした。屋外や窓際でもう一度お試しください。', true);
+    }
+  };
+
+  window.geoAccuracy = function(acc){
+    if (!acc || acc <= 500) return;
+    var m = Math.round(acc) + 'm';
+    if (inApp) show('現在地が実際の場所からずれている可能性があります（誤差 約' + m + '）。ブラウザで開くと正確になります。');
+    else show('現在地の精度が低くなっています（誤差 約' + m + '）。屋外や窓際でもう一度お試しください。', true);
+  };
+
+  if (inApp) {
+    show('この画面はアプリ内ブラウザです。現在地を使うにはブラウザで開いてください。');
+  }
+})();
+
 
 /* ===== 河川カメラのピン =====
    ・CAMS：主要地点のYouTubeライブ映像（肉球災害対策事務局セレクト）
