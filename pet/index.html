@@ -471,30 +471,40 @@ function locateQuiet(){
 
   function copyUrl(){
     var u = location.href.split('#')[0];
-    try { if (navigator.clipboard) { navigator.clipboard.writeText(u); return true; } } catch(e){}
     try {
       var ta = document.createElement('textarea');
-      ta.value = u; ta.style.position='fixed'; ta.style.opacity='0';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-      return true;
-    } catch(e){ return false; }
+      ta.value = u; ta.setAttribute('readonly','');
+      ta.style.position='fixed'; ta.style.top='0'; ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.setSelectionRange(0, u.length); ta.select();
+      var ok = document.execCommand('copy');
+      ta.remove();
+      if (ok) return true;
+    } catch(e){}
+    try { if (navigator.clipboard) { navigator.clipboard.writeText(u); return true; } } catch(e){}
+    return false;
   }
 
   btn.addEventListener('click', function(){
+    var copied = copyUrl();   // 指で押した直後でないとコピーできないため、最初に実行する
     var target = location.host + location.pathname + location.search;
     if (isAndroid) {
       location.href = 'intent://' + target + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
     } else if (isIOS) {
-      location.href = 'x-safari-https://' + target;
+      location.href = 'x-safari-https://' + target;   // 対応しているアプリなら切り替わる
     } else {
       window.open(location.href, '_blank', 'noopener');
     }
     setTimeout(function(){
       if (document.hidden) return;   // 切り替わったので何もしない
-      var ok = copyUrl();
-      show(ok ? 'うまく切り替わりませんでした。URLをコピーしたので、SafariやChromeに貼り付けて開いてください。'
-              : '右上の「…」から「ブラウザで開く」を選んでください。', true);
-    }, 1500);
+      if (isIOS) {
+        show('画面の右下にあるコンパスの絵（または「…」→「Safariで開く」）を押すと、Safariで開けます。'
+             + (copied ? 'URLもコピーしてあります。' : ''), true);
+      } else {
+        show(copied ? 'うまく切り替わりませんでした。URLをコピーしたので、ブラウザに貼り付けて開いてください。'
+                    : '右上の「…」から「ブラウザで開く」を選んでください。', true);
+      }
+    }, 900);
   });
 
   window.geoFail = function(e){
