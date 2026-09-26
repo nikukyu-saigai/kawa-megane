@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>端末チェック｜川めがね</title>
+<style>
+  body{margin:0;padding:14px;background:#0F1929;color:#F6F1E5;
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;font-size:14px;line-height:1.6}
+  h1{font-size:16px;color:#C9A75A;margin:0 0 10px}
+  p{margin:0 0 10px;font-size:12.5px;color:#CBD6E6}
+  textarea{width:100%;height:190px;background:#16233F;color:#F6F1E5;font-size:11.5px;
+    border:1px solid rgba(201,167,90,.5);border-radius:8px;padding:8px}
+  button{appearance:none;border:0;background:#C9A75A;color:#1B2A4A;font-weight:700;font-size:13.5px;
+    padding:11px 12px;border-radius:9px;margin:6px 6px 0 0;cursor:pointer}
+  button.sub{background:#16233F;color:#F6F1E5;border:1.5px solid rgba(201,167,90,.5);font-weight:400}
+  #log{margin-top:10px;font-size:12px;color:#E8B24F;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>端末チェック</h1>
+<p>この内容をコピーして、チャットに貼り付けてください。</p>
+<textarea id="out" readonly></textarea>
+<button id="copy">この内容をコピー</button>
+
+<p style="margin-top:16px">切り替えのテスト（押すとどうなるか下に記録されます）</p>
+<button class="sub" id="b1">A：intent で開く</button>
+<button class="sub" id="b2">B：Chrome を指定して開く</button>
+<button class="sub" id="b3">C：Safari を指定して開く</button>
+<button class="sub" id="b4">D：新しいタブで開く</button>
+<div id="log"></div>
+
+<script>
+var out = document.getElementById('out');
+var log = document.getElementById('log');
+var lines = [];
+
+function add(k, v){ lines.push(k + ': ' + v); out.value = lines.join('\n'); }
+
+add('UA', navigator.userAgent);
+add('platform', navigator.platform);
+add('画面', screen.width + 'x' + screen.height + ' dpr' + (window.devicePixelRatio || 1));
+add('secure', String(window.isSecureContext));
+add('geolocation', ('geolocation' in navigator) ? 'あり' : 'なし');
+add('clipboard API', navigator.clipboard ? 'あり' : 'なし');
+
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({name:'geolocation'}).then(function(s){
+    add('位置情報の許可', s.state);
+  }).catch(function(){ add('位置情報の許可', '不明'); });
+} else { add('位置情報の許可', '確認不可'); }
+
+var t0 = Date.now();
+if ('geolocation' in navigator) {
+  navigator.geolocation.getCurrentPosition(function(p){
+    add('現在地', '取得できた（誤差 約' + Math.round(p.coords.accuracy) + 'm・' + (Date.now()-t0) + 'ms）');
+  }, function(e){
+    add('現在地', '取得できない（code ' + e.code + '：' + e.message + '）');
+  }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+}
+
+document.getElementById('copy').addEventListener('click', function(){
+  out.focus(); out.setSelectionRange(0, out.value.length); out.select();
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch(e){}
+  if (!ok && navigator.clipboard) { try { navigator.clipboard.writeText(out.value); ok = true; } catch(e){} }
+  log.textContent = ok ? 'コピーしました。チャットに貼り付けてください。'
+                       : 'コピーできませんでした。上の枠を長押しして選択してください。';
+});
+
+function test(name, url){
+  var t = Date.now();
+  log.textContent = name + ' を試します…';
+  try { location.href = url; } catch(e){ log.textContent = name + '：エラー ' + e.message; return; }
+  setTimeout(function(){
+    if (!document.hidden) {
+      log.textContent = name + '：切り替わりませんでした（' + (Date.now()-t) + 'ms）';
+      lines.push('テスト' + name + ': 切り替わらない');
+      out.value = lines.join('\n');
+    } else {
+      lines.push('テスト' + name + ': 切り替わった');
+      out.value = lines.join('\n');
+    }
+  }, 1500);
+}
+
+var target = location.host + '/map.html';
+document.getElementById('b1').addEventListener('click', function(){
+  test('A', 'intent://' + target + '#Intent;scheme=https;action=android.intent.action.VIEW;end');
+});
+document.getElementById('b2').addEventListener('click', function(){
+  test('B', 'googlechrome://navigate?url=https://' + target);
+});
+document.getElementById('b3').addEventListener('click', function(){
+  test('C', 'x-safari-https://' + target);
+});
+document.getElementById('b4').addEventListener('click', function(){
+  var w = window.open('https://' + target, '_blank');
+  log.textContent = w ? 'D：新しいタブを開きました' : 'D：ブロックされました';
+});
+</script>
+</body>
+</html>
